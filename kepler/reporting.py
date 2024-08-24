@@ -1,24 +1,18 @@
 import colorsys
 from dataclasses import dataclass, field
-import functools
-import timeit
 import typing
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 
 import numpy as np
 import numpy.typing as npt
 from rich import console, pretty, table, text
 
-from .types import Snapshot, TimingKey
+from .timer import Timer
 
 
 SECONDS_IN_MINUTE = 60
 SECONDS_IN_HOUR = 60 * SECONDS_IN_MINUTE
 SECONDS_IN_DAY = 24 * SECONDS_IN_HOUR
-
-
-def format_timing_key(key: TimingKey):
-    return " -> ".join(c.label for c in key)
 
 
 @dataclass
@@ -106,40 +100,52 @@ DEFAULT_METRICS = (
 )
 
 
-def compare_timing_keys(k1: TimingKey, k2: TimingKey):
-    if len(k1) < len(k2) and k2[: len(k1)] == k1:
-        return -1
-    elif len(k1) > len(k2) and k1[: len(k2)] == k2:
-        return 1
-    return 0
+@dataclass
+class Event:
+    call_path: list[str]
+    times: npt.NDArray[np.float64]
+
+    @property
+    def name(self):
+        return self.call_path[-1]
+
+    @property
+    def indented_name(self, indent: str = "  "):
+        return indent * (len(self.call_path) - 1) + self.name
+
+
+def flat_events(timer: Timer, call_stack: list[str] = []) -> Iterable[Event]:
+    yield Event(call_stack, np.array(timer.events))
+    for caller_id, timer in timer.timers.items():
+        yield from flat_events(timer, call_stack + [caller_id.label])
 
 
 def report(
-    snapshot: Snapshot, metrics: typing.Iterable[Metric] = DEFAULT_METRICS
+    timer: Timer, name: str, metrics: typing.Iterable[Metric] = DEFAULT_METRICS
 ):
-    snapshot_time = timeit.default_timer() - snapshot.start
-    keys = sorted(snapshot.times, key=functools.cmp_to_key(compare_timing_keys))
-    times = [np.array(snapshot.times[key]) for key in keys]
-    times.append(np.array([snapshot_time]))
-    metric_rows = [[metric.compute(a) for metric in metrics] for a in times]
+    events = list(flat_events(timer, []))
+    metric_rows = [
+        [metric.compute(e.times) for metric in metrics] for e in events
+    ]
     formatted_columns = [
         metric.format(np.array(column))
         for metric, column in zip(metrics, zip(*metric_rows))
     ]
-    formatted_rows = list(zip(*formatted_columns))
-    summary = formatted_rows.pop()
+    summary, *rows = list(zip(*formatted_columns))
 
     report = table.Table(
-        title=f"{snapshot.name} Timings",
+        title=f"Timings for [b][blue]{name} :stopwatch:[/blue][/b]",
         show_footer=True,
         row_styles=("", "on black"),
+        title_style="white",
     )
 
     report.add_column("Stage", "Total", style="bold blue")
     for metric, footer in zip(metrics, summary):
         report.add_column(metric.name, footer=footer, **metric.rich_args)
 
-    for key, row in zip(keys, formatted_rows):
-        report.add_row(format_timing_key(key), *row)
+    # First event is summary
+    for event, row in zip(events[1:], rows):
+        report.add_row(event.indented_name, *row, end_section=False)
 
     console.Console().print(report)

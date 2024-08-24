@@ -4,7 +4,7 @@ import time
 import kepler
 
 
-@kepler.time
+@kepler.time("do some stuff")
 def do_some_stuff():
     for i in range(10):
         if i % 2 == 1:
@@ -13,7 +13,7 @@ def do_some_stuff():
             time.sleep(random.random() / 100)
 
 
-@kepler.report_snapshot("main")
+@kepler.time
 def main():
     with kepler.time("sloooow"):
         time.sleep(0.0001)
@@ -21,4 +21,6 @@ def main():
     do_some_stuff()
 
 
-main()
+if __name__ == "__main__":
+    main()
+    kepler.report()
