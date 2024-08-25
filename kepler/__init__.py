@@ -1,1 +1,1 @@
-from .timer import report, split, time, Timer
+from .timer import report, stopwatch, time, Timer

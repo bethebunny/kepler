@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import inspect
 import timeit
 import typing
-from typing import Callable, Mapping
+from typing import Callable, Generator, Iterable, Mapping, Optional
 
 
 current_time = timeit.default_timer
@@ -40,51 +40,27 @@ class Timer:
     def __init__(self):
         self.timers: Mapping[CallerID, Timer] = collections.defaultdict(Timer)
         self.events: list[float] = []
-        self.current_split: float = 0
 
-    @contextlib.contextmanager
-    def time(self, label: str | CallerID):
-        start = current_time()
-        caller_id = label if isinstance(
-            label, CallerID
-        ) else CallerID.from_caller(label)
-        timer = self.timers[caller_id]
-        # Using a contextvar allows mutually- and self-recursive timers
-        token = _STATE.set(TimerState(timer, start, start))
-        try:
-            yield
-        finally:
-            timer._publish(current_time() - start)
-            _STATE.reset(token)
-
-    def _publish(self, event: float):
+    def publish(self, event: float):
         self.events.append(event)
 
-    def split(self, label: str | CallerID):
-        """Publish a single split event."""
-        time = current_time()
-        caller_id = label if isinstance(
-            label, CallerID
-        ) else CallerID.from_caller(label)
-        state = _STATE.get()
-        assert state.timer is self
-        self.timers[caller_id]._publish(time - state.current_split)
-        state.current_split = time
+    def split(self, caller_id: CallerID, time: float):
+        self.timers[caller_id].publish(time)
 
 
 @dataclass
 class TimerState:
     timer: Timer
     start: float
-    current_split: float
 
 
 _STATE = contextvars.ContextVar[TimerState]("_STATE")
-_STATE.set(TimerState(Timer(), current_time(), current_time()))
+_STATE.set(TimerState(Timer(), current_time()))
 
 
 P = typing.ParamSpec("P")
 R = typing.TypeVar("R")
+T = typing.TypeVar("T")
 
 
 @typing.overload
@@ -93,26 +69,65 @@ def time(label: str) -> contextlib._GeneratorContextManager[None]:  # type: igno
 
 
 @typing.overload
+def time(label: str, it: Iterable[T]) -> Generator[T]:  # type: ignore
+    ...
+
+
+@typing.overload
 def time(label: Callable[P, R]) -> Callable[P, R]:
     ...
 
 
-def time(label: str | Callable[P, R]):
+def time(label: str | Callable[P, R], it: Optional[Iterable[T]] = None):
     if isinstance(label, str):
-        return _time(CallerID.from_caller(label))
+        caller = CallerID.from_caller(label)
+        return _time(caller) if it is None else _time_iter(caller, it)
     else:
         return _time(CallerID.from_fn(label))(label)
 
 
 @contextlib.contextmanager
 def _time(caller_id: CallerID):
-    with _STATE.get().timer.time(caller_id):
+    start = current_time()
+    timer = _STATE.get().timer.timers[caller_id]
+    # Using a contextvar allows mutually- and self-recursive timers
+    token = _STATE.set(TimerState(timer, start))
+    try:
         yield
+    finally:
+        timer.publish(current_time() - start)
+        _STATE.reset(token)
 
 
-def split(label: str):
-    caller_id = CallerID.from_caller(label)
-    return _STATE.get().timer.split(caller_id)
+def _time_iter(caller_id: CallerID, it: Iterable[T]) -> Generator[T]:
+    it = iter(it)
+    timer = _STATE.get().timer.timers[caller_id]
+    current_iter = current_time()
+    token = _STATE.set(TimerState(timer, current_iter))
+    try:
+        while True:
+            try:
+                yield next(it)
+            except StopIteration:
+                break
+            time = current_time()
+            timer.publish(time - current_iter)
+            current_iter = time
+    finally:
+        _STATE.reset(token)
+
+
+def stopwatch():
+    timer = _STATE.get().timer
+    current_split = current_time()
+
+    def split(label: str):
+        nonlocal current_split
+        time = current_time()
+        timer.split(CallerID.from_caller(label), time - current_split)
+        current_split = time
+
+    return split
 
 
 def report(name: str = ""):

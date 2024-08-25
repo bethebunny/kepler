@@ -6,18 +6,18 @@ import kepler
 
 @kepler.time("do some stuff")
 def do_some_stuff():
-    for i in range(10):
-        if i % 2 == 1:
-            kepler.split("odd")
-        with kepler.time("in loop"):
+    split = kepler.stopwatch()
+    for i in kepler.time("loop", range(20)):
+        with kepler.time("sleep"):
             time.sleep(random.random() / 100)
+        if i % 2 == 1:
+            split("odd")
 
 
 @kepler.time
 def main():
     with kepler.time("sloooow"):
-        time.sleep(0.0001)
-    kepler.split("startup")
+        time.sleep(0.3)
     do_some_stuff()
 
 

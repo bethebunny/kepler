@@ -48,13 +48,12 @@ def hls_color_gradient(
     l = l_range[0] + (l_range[1] - l_range[0]) * log_normed
     s = s_range[0] + (s_range[1] - s_range[0]) * log_normed
 
-    def hue_to_color(hls: npt.NDArray[np.float64]):
-        rn, gn, bn = colorsys.hls_to_rgb(*hls)
-        return f"rgb({int(rn * 255)},{int(gn * 255)},{int(bn * 255)})"
+    def hue_to_color(h: float, l: float, s: float):
+        rn, gn, bn = colorsys.hls_to_rgb(h, l, s)
+        color = f"rgb({int(rn * 255)},{int(gn * 255)},{int(bn * 255)})"
+        return color
 
-    return list(
-        np.apply_along_axis(hue_to_color, 1, np.stack([h, l, s], axis=1))
-    )
+    return [hue_to_color(*hls) for hls in zip(h, l, s)]
 
 
 def format_timedelta(seconds: float):
@@ -90,7 +89,7 @@ def format_timedelta(seconds: float):
 
 
 DEFAULT_METRICS = (
-    Metric("Count", len, rich_args={"justify": "right"}),
+    Metric("Count", len),
     Metric("Total", np.sum, format=gradient_td),
     Metric("Average", np.mean, format=gradient_td),
     Metric("Max", np.max, format=gradient_td),
@@ -142,7 +141,8 @@ def report(
 
     report.add_column("Stage", "Total", style="bold blue")
     for metric, footer in zip(metrics, summary):
-        report.add_column(metric.name, footer=footer, **metric.rich_args)
+        kwargs = {"justify": "right", **metric.rich_args}
+        report.add_column(metric.name, footer=footer, **kwargs)
 
     # First event is summary
     for event, row in zip(events[1:], rows):
