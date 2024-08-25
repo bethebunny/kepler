@@ -1,5 +1,6 @@
 [build-system]
-requires = []
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "kepler"
