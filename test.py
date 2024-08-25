@@ -11,7 +11,8 @@ def do_some_stuff():
         with kepler.time("sleep"):
             time.sleep(random.random() / 100)
         if i % 2 == 1:
-            split("odd")
+            with kepler.time("overhead"):
+                split("odd")
 
 
 @kepler.time

@@ -6,6 +6,7 @@ import contextvars
 from dataclasses import dataclass
 import inspect
 import timeit
+from types import FrameType, FunctionType
 import typing
 from typing import Callable, Generator, Iterable, Mapping, Optional
 
@@ -20,20 +21,22 @@ class CallerID:
     lineno: int
 
     @classmethod
-    def from_frame(cls, label: str, frame: inspect.FrameInfo):
-        assert frame.positions
-        return cls(label, frame.filename, frame.positions.lineno or 0)
+    def from_frame(cls, label: str, frame: FrameType):
+        return cls(label, inspect.getfile(frame), frame.f_lineno)
 
     @classmethod
-    def from_fn(cls, fn: function):
-        return cls(
-            fn.__qualname__, fn.__code__.co_filename, fn.__code__.co_firstlineno
-        )
+    def from_fn(cls, fn: FunctionType):
+        code = fn.__code__
+        return cls(fn.__qualname__, code.co_filename, code.co_firstlineno)
 
     @classmethod
-    def from_caller(cls, label: str, context: int = 2):
-        frame = inspect.stack(context=context)[-context]
-        return cls.from_frame(label, frame)
+    def from_caller(cls, label: str, depth: int = 1):
+        frame = inspect.currentframe()
+        for _ in range(depth + 1):
+            frame = frame and frame.f_back
+        if frame:
+            return cls.from_frame(label, frame)
+        return cls(label, "<unknown>", 0)
 
 
 class Timer:
