@@ -1,0 +1,27 @@
+[build-system]
+requires = []
+
+[project]
+name = "kepler"
+version = "0.1"
+requires-python = ">=3.9"
+dependencies = ["numpy", "rich"]
+authors = [{ name = "Stef Lindall", email = "bethebunny@gmail.com" }]
+description = "Fast, easy, pretty and readable program instrumentation."
+license = { text = "Copyright 2024 Stef Lindall, License BSD-3-Clause" }
+readme = "README.md"
+keywords = [
+    "rich",
+    "instrument",
+    "instrumentation",
+    "profile",
+    "async",
+    "asyncio",
+]
+
+[project.urls]
+Homepage = "https://bethebunny.github.io/kepler"
+Documentation = "https://bethebunny.github.io/kepler"
+Repository = "https://github.com/bethebunny/kepler"
+Issues = "https://github.com/bethebunny/kepler/issues"
+Changelog = "https://github.com/bethebunny/kepler/releases"
