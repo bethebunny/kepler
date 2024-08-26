@@ -11,6 +11,9 @@ import typing
 from typing import Callable, Generator, Iterable, Mapping, Optional
 
 
+GeneratorContextManager = contextlib._GeneratorContextManager  # type: ignore
+
+
 current_time = timeit.default_timer
 
 
@@ -41,45 +44,49 @@ class CallerID:
 
 class Timer:
     def __init__(self):
-        self.timers: Mapping[CallerID, Timer] = collections.defaultdict(Timer)
+        self.context = TimerContext()
         self.events: list[float] = []
 
     def log(self, start_time: float):
         self.events.append((time := current_time()) - start_time)
         return time
 
+
+class TimerContext:
+    def __init__(self):
+        self.timers: Mapping[CallerID, Timer] = collections.defaultdict(Timer)
+        self.stopwatches: Mapping[
+            CallerID, TimerContext
+        ] = collections.defaultdict(TimerContext)
+        self._tokens: list[contextvars.Token[TimerContext]] = []
+
     def __getitem__(self, caller_id: CallerID) -> Timer:
         return self.timers[caller_id]
 
+    def __enter__(self):
+        self._tokens.append(_CURRENT_CONTEXT.set(self))
+        return self
+
+    def __exit__(self, *_):
+        _CURRENT_CONTEXT.reset(self._tokens.pop())
+
     def stopwatch(self, name: str):
-        name = f":stopwatch: {name}"
-
-        timer = self[CallerID.from_caller(name)]
-        timer.events = self.events
-
+        ctx = self.stopwatches[CallerID.from_caller(name)]
         start = current_time()
 
         def split(label: str):
             nonlocal start
-            start = timer[CallerID.from_caller(label)].log(start)
+            start = ctx[CallerID.from_caller(label)].log(start)
 
         return split
 
-    @contextlib.contextmanager
-    def context(self):
-        token = _CURRENT_TIMER.set(self)
-        try:
-            yield self
-        finally:
-            _CURRENT_TIMER.reset(token)
+
+_CURRENT_CONTEXT = contextvars.ContextVar[TimerContext]("_CURRENT_CONTEXT")
+_CURRENT_CONTEXT.set(TimerContext())
 
 
-_CURRENT_TIMER = contextvars.ContextVar[Timer]("_CURRENT_TIMER")
-_CURRENT_TIMER.set(Timer())
-
-
-def current_timer() -> Timer:
-    return _CURRENT_TIMER.get()
+def current_context() -> TimerContext:
+    return _CURRENT_CONTEXT.get()
 
 
 P = typing.ParamSpec("P")
@@ -88,7 +95,7 @@ T = typing.TypeVar("T")
 
 
 @typing.overload
-def time(label: str) -> contextlib._GeneratorContextManager[None]:  # type: ignore
+def time(label: str) -> GeneratorContextManager[None]:
     ...
 
 
@@ -112,7 +119,8 @@ def time(label: str | Callable[P, R], it: Optional[Iterable[T]] = None):
 
 @contextlib.contextmanager
 def _time(caller_id: CallerID):
-    with current_timer()[caller_id].context() as timer:
+    timer = current_context()[caller_id]
+    with timer.context:
         start = current_time()
         try:
             yield timer
@@ -123,28 +131,19 @@ def _time(caller_id: CallerID):
 def _time_iter(caller_id: CallerID, it: Iterable[T]) -> Generator[T]:
     it = iter(it)
     current_iter = current_time()
-    with _time(caller_id) as timer:
+    timer = current_context()[caller_id]
+    with timer.context:
         for value in it:
             yield value
             current_iter = timer.log(current_iter)
 
 
 def stopwatch(name: str):
-    return current_timer().stopwatch(name)
+    return current_context().stopwatch(name)
 
 
 def report(name: str = ""):
-    timer = current_timer()
-
-    # Special case: If the root timer has only one trivial entry,
-    # we report that entry instead.
-    if len(timer.timers) == 1:
-        caller_id, subtimer = next(iter(timer.timers.items()))
-        if len(subtimer.events) == 1:
-            name = name or caller_id.label
-            timer = subtimer
-
     from . import reporting
 
     reporter = reporting.RichReporter(name)
-    reporter.report(timer)
+    reporter.report(current_context())

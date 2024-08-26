@@ -1,12 +1,13 @@
 import colorsys
 from dataclasses import dataclass, field
+import functools
 from typing import Any, Callable, Iterable, Sequence
 
 import numpy as np
 import numpy.typing as npt
 from rich import console, pretty, table, text
 
-from .timer import Timer
+from .timer import Timer, TimerContext
 
 
 SECONDS_IN_MINUTE = 60
@@ -117,25 +118,38 @@ class Event:
 
 
 def flat_timers(
-    timer: Timer, call_stack: list[str] = []
+    ctx: TimerContext, call_stack: CallStack = []
 ) -> Iterable[tuple[CallStack, Timer]]:
-    yield (call_stack, timer)
-    for caller_id, timer in timer.timers.items():
-        yield from flat_timers(timer, call_stack + [caller_id.label])
+    for caller_id, timer in ctx.timers.items():
+        stack = call_stack + [caller_id.label]
+        yield stack, timer
+        yield from flat_timers(timer.context, stack)
+    for caller_id, sw_ctx in ctx.stopwatches.items():
+        name = f":stopwatch: {caller_id}"
+        yield from flat_timers(sw_ctx, call_stack + [name])
+
+
+def common_prefix(l: CallStack, r: CallStack) -> CallStack:
+    for i, (lv, rv) in enumerate(zip(l, r)):
+        if lv != rv:
+            return l[:i]
+    return l[: len(r)]
 
 
 class Reporter:
-    def report(self, timer: Timer):
+    def report(self, ctx: TimerContext):
         pass
 
-    def events(self, timer: Timer, metrics: Sequence[Metric]) -> list[Event]:
+    def events(
+        self, ctx: TimerContext, metrics: Sequence[Metric]
+    ) -> list[Event]:
         return [
             Event(
                 call_stack,
                 (times := np.array(timer.events)),
                 {metric.name: metric.compute(times) for metric in metrics},
             )
-            for call_stack, timer in flat_timers(timer)
+            for call_stack, timer in flat_timers(ctx)
         ]
 
 
@@ -144,29 +158,46 @@ class RichReporter(Reporter):
     name: str
     metrics: tuple[Metric, ...] = DEFAULT_METRICS
 
-    def report(self, timer: Timer):
-        events = self.events(timer, self.metrics)
+    def report(self, ctx: TimerContext):
+        events = self.events(ctx, self.metrics)
+        prefix = functools.reduce(common_prefix, (e.call_stack for e in events))
+
         columns = [
             (metric, np.array([event.metrics[metric.name] for event in events]))
             for metric in self.metrics
         ]
         formatted_columns = [metric.format(col) for metric, col in columns]
-        summary, *rows = list(zip(*formatted_columns))
+        rows = list(zip(events, zip(*formatted_columns)))
+
+        name = self.name
+        if prefix:
+            name = (f"{name}: " if name else "") + " -> ".join(prefix)
+            for event in events:
+                event.call_stack = event.call_stack[len(prefix) :]
+
+        title = f"Timings for [b][blue]{name} :stopwatch:[/blue][/b]"
+        # TODO: figure out how to format stopwatch regions
 
         report = table.Table(
-            title=f"Timings for [b][blue]{self.name} :stopwatch:[/blue][/b]",
-            show_footer=True,
-            row_styles=("", "on black"),
-            title_style="white",
+            title=title, row_styles=("", "on black"), title_style="white"
         )
 
-        report.add_column("Stage", "Total", style="bold blue")
-        for metric, footer in zip(self.metrics, summary):
-            kwargs = {"justify": "right", **metric.rich_args}
-            report.add_column(metric.name, footer=footer, **kwargs)
+        if not events[0].call_stack:
+            # First event is summary
+            (_, summary), *rows = rows
+            report.show_footer = True
 
-        # First event is summary
-        for event, row in zip(events[1:], rows):
+            report.add_column("Stage", "Total", style="bold blue")
+            for metric, footer in zip(self.metrics, summary):
+                kwargs = {"justify": "right", **metric.rich_args}
+                report.add_column(metric.name, footer=footer, **kwargs)
+        else:
+            report.add_column("Stage", style="bold blue")
+            for metric in self.metrics:
+                kwargs = {"justify": "right", **metric.rich_args}
+                report.add_column(metric.name, **kwargs)
+
+        for event, row in rows:
             report.add_row(event.indented_name, *row, end_section=False)
 
         console.Console().print(report)
