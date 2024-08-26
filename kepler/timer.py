@@ -50,14 +50,37 @@ class Timer:
     def split(self, caller_id: CallerID, time: float):
         self.timers[caller_id].publish(time)
 
-    def stopwatch(self, name: str) -> Timer:
+    def stopwatch(self, name: str):
+        name = f":stopwatch: {name}"
+
         timer = self.timers[CallerID.from_caller(name)]
         timer.events = self.events
-        return timer
+
+        current_split = current_time()
+
+        def split(label: str):
+            nonlocal current_split
+            time = current_time()
+            timer.split(CallerID.from_caller(label), time - current_split)
+            current_split = time
+
+        return split
+
+    @contextlib.contextmanager
+    def context(self):
+        token = _CURRENT_TIMER.set(self)
+        try:
+            yield self
+        finally:
+            _CURRENT_TIMER.reset(token)
 
 
 _CURRENT_TIMER = contextvars.ContextVar[Timer]("_CURRENT_TIMER")
 _CURRENT_TIMER.set(Timer())
+
+
+def current_timer() -> Timer:
+    return _CURRENT_TIMER.get()
 
 
 P = typing.ParamSpec("P")
@@ -90,15 +113,12 @@ def time(label: str | Callable[P, R], it: Optional[Iterable[T]] = None):
 
 @contextlib.contextmanager
 def _time(caller_id: CallerID):
-    start = current_time()
-    # Using a contextvar allows mutually- and self-recursive timers
-    timer = _CURRENT_TIMER.get().timers[caller_id]
-    token = _CURRENT_TIMER.set(timer)
-    try:
-        yield timer
-    finally:
-        timer.publish(current_time() - start)
-        _CURRENT_TIMER.reset(token)
+    with current_timer().timers[caller_id].context() as timer:
+        start = current_time()
+        try:
+            yield timer
+        finally:
+            timer.publish(current_time() - start)
 
 
 def _time_iter(caller_id: CallerID, it: Iterable[T]) -> Generator[T]:
@@ -113,21 +133,11 @@ def _time_iter(caller_id: CallerID, it: Iterable[T]) -> Generator[T]:
 
 
 def stopwatch(name: str):
-    name = f":stopwatch: {name}"
-    timer = _CURRENT_TIMER.get().stopwatch(name)
-    current_split = current_time()
-
-    def split(label: str):
-        nonlocal current_split
-        time = current_time()
-        timer.split(CallerID.from_caller(label), time - current_split)
-        current_split = time
-
-    return split
+    return current_timer().stopwatch(name)
 
 
 def report(name: str = ""):
-    timer = _CURRENT_TIMER.get()
+    timer = current_timer()
 
     # Special case: If the root timer has only one trivial entry,
     # we report that entry instead.
