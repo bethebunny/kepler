@@ -116,7 +116,7 @@ def time(label: str) -> GeneratorContextManager[None]:
 
 
 @typing.overload
-def time(label: str, it: Iterable[T]) -> Generator[T]:  # type: ignore
+def time(label: str, it: Iterable[T]) -> Generator[T]:
     ...
 
 

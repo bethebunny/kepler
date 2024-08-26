@@ -190,12 +190,12 @@ class RichReporter(Reporter):
             report.add_column("Stage", "Total", style="bold blue")
             for metric, footer in zip(self.metrics, summary):
                 kwargs = {"justify": "right", **metric.rich_args}
-                report.add_column(metric.name, footer=footer, **kwargs)
+                report.add_column(metric.name, footer=footer, **kwargs)  # type: ignore
         else:
             report.add_column("Stage", style="bold blue")
             for metric in self.metrics:
                 kwargs = {"justify": "right", **metric.rich_args}
-                report.add_column(metric.name, **kwargs)
+                report.add_column(metric.name, **kwargs)  # type: ignore
 
         for event, row in rows:
             report.add_row(event.indented_name, *row, end_section=False)
