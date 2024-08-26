@@ -44,25 +44,24 @@ class Timer:
         self.timers: Mapping[CallerID, Timer] = collections.defaultdict(Timer)
         self.events: list[float] = []
 
-    def publish(self, event: float):
-        self.events.append(event)
+    def log(self, start_time: float):
+        self.events.append((time := current_time()) - start_time)
+        return time
 
-    def split(self, caller_id: CallerID, time: float):
-        self.timers[caller_id].publish(time)
+    def __getitem__(self, caller_id: CallerID) -> Timer:
+        return self.timers[caller_id]
 
     def stopwatch(self, name: str):
         name = f":stopwatch: {name}"
 
-        timer = self.timers[CallerID.from_caller(name)]
+        timer = self[CallerID.from_caller(name)]
         timer.events = self.events
 
-        current_split = current_time()
+        start = current_time()
 
         def split(label: str):
-            nonlocal current_split
-            time = current_time()
-            timer.split(CallerID.from_caller(label), time - current_split)
-            current_split = time
+            nonlocal start
+            start = timer[CallerID.from_caller(label)].log(start)
 
         return split
 
@@ -113,12 +112,12 @@ def time(label: str | Callable[P, R], it: Optional[Iterable[T]] = None):
 
 @contextlib.contextmanager
 def _time(caller_id: CallerID):
-    with current_timer().timers[caller_id].context() as timer:
+    with current_timer()[caller_id].context() as timer:
         start = current_time()
         try:
             yield timer
         finally:
-            timer.publish(current_time() - start)
+            timer.log(start)
 
 
 def _time_iter(caller_id: CallerID, it: Iterable[T]) -> Generator[T]:
@@ -127,9 +126,7 @@ def _time_iter(caller_id: CallerID, it: Iterable[T]) -> Generator[T]:
     with _time(caller_id) as timer:
         for value in it:
             yield value
-            time = current_time()
-            timer.publish(time - current_iter)
-            current_iter = time
+            current_iter = timer.log(current_iter)
 
 
 def stopwatch(name: str):
