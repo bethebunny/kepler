@@ -51,6 +51,22 @@ class Timer:
         self.events.append((time := current_time()) - start_time)
         return time
 
+    @contextlib.contextmanager
+    def time(self):
+        with self.context:
+            start = current_time()
+            try:
+                yield self
+            finally:
+                self.log(start)
+
+    def time_iter(self, it: Iterable[T]) -> Generator[T]:
+        current_iter = current_time()
+        with self.context:
+            for value in it:
+                yield value
+                current_iter = self.log(current_iter)
+
 
 class TimerContext:
     def __init__(self):
@@ -111,31 +127,22 @@ def time(label: Callable[P, R]) -> Callable[P, R]:
 
 def time(label: str | Callable[P, R], it: Optional[Iterable[T]] = None):
     if isinstance(label, str):
-        caller = CallerID.from_caller(label)
-        return _time(caller) if it is None else _time_iter(caller, it)
+        caller_id = CallerID.from_caller(label)
+        if it is None:
+            return _time(caller_id)
+        return current_context()[caller_id].time_iter(it)
     else:
         return _time(CallerID.from_fn(label))(label)
 
 
+# This is key to correctness of decorators. @contextmanagers can be used
+# as context managers _or_ as decorators, so by delaying creation like this
+# we allow the decorator to retrieve the _dynamic_ timer context, rather than
+# the context at decoration time.
 @contextlib.contextmanager
 def _time(caller_id: CallerID):
-    timer = current_context()[caller_id]
-    with timer.context:
-        start = current_time()
-        try:
-            yield timer
-        finally:
-            timer.log(start)
-
-
-def _time_iter(caller_id: CallerID, it: Iterable[T]) -> Generator[T]:
-    it = iter(it)
-    current_iter = current_time()
-    timer = current_context()[caller_id]
-    with timer.context:
-        for value in it:
-            yield value
-            current_iter = timer.log(current_iter)
+    with current_context()[caller_id].time():
+        yield
 
 
 def stopwatch(name: str):
