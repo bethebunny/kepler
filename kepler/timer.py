@@ -6,7 +6,7 @@ import contextvars
 from dataclasses import dataclass
 import inspect
 import timeit
-from types import FrameType, FunctionType
+from types import FrameType
 import typing
 from typing import Callable, Generator, Iterable, Mapping, Optional
 
@@ -25,7 +25,7 @@ class CallerID:
         return cls(label, inspect.getfile(frame), frame.f_lineno)
 
     @classmethod
-    def from_fn(cls, fn: FunctionType):
+    def from_fn(cls, fn: Callable[P, R]):
         code = fn.__code__
         return cls(fn.__qualname__, code.co_filename, code.co_firstlineno)
 
@@ -50,15 +50,14 @@ class Timer:
     def split(self, caller_id: CallerID, time: float):
         self.timers[caller_id].publish(time)
 
+    def stopwatch(self, name: str) -> Timer:
+        timer = self.timers[CallerID.from_caller(name)]
+        timer.events = self.events
+        return timer
 
-@dataclass
-class TimerState:
-    timer: Timer
-    start: float
 
-
-_STATE = contextvars.ContextVar[TimerState]("_STATE")
-_STATE.set(TimerState(Timer(), current_time()))
+_CURRENT_TIMER = contextvars.ContextVar[Timer]("_CURRENT_TIMER")
+_CURRENT_TIMER.set(Timer())
 
 
 P = typing.ParamSpec("P")
@@ -92,36 +91,30 @@ def time(label: str | Callable[P, R], it: Optional[Iterable[T]] = None):
 @contextlib.contextmanager
 def _time(caller_id: CallerID):
     start = current_time()
-    timer = _STATE.get().timer.timers[caller_id]
     # Using a contextvar allows mutually- and self-recursive timers
-    token = _STATE.set(TimerState(timer, start))
+    timer = _CURRENT_TIMER.get().timers[caller_id]
+    token = _CURRENT_TIMER.set(timer)
     try:
-        yield
+        yield timer
     finally:
         timer.publish(current_time() - start)
-        _STATE.reset(token)
+        _CURRENT_TIMER.reset(token)
 
 
 def _time_iter(caller_id: CallerID, it: Iterable[T]) -> Generator[T]:
     it = iter(it)
-    timer = _STATE.get().timer.timers[caller_id]
     current_iter = current_time()
-    token = _STATE.set(TimerState(timer, current_iter))
-    try:
-        while True:
-            try:
-                yield next(it)
-            except StopIteration:
-                break
+    with _time(caller_id) as timer:
+        for value in it:
+            yield value
             time = current_time()
             timer.publish(time - current_iter)
             current_iter = time
-    finally:
-        _STATE.reset(token)
 
 
-def stopwatch():
-    timer = _STATE.get().timer
+def stopwatch(name: str):
+    name = f":stopwatch: {name}"
+    timer = _CURRENT_TIMER.get().stopwatch(name)
     current_split = current_time()
 
     def split(label: str):
@@ -134,10 +127,7 @@ def stopwatch():
 
 
 def report(name: str = ""):
-    from . import reporting
-
-    state = _STATE.get()
-    timer = state.timer
+    timer = _CURRENT_TIMER.get()
 
     # Special case: If the root timer has only one trivial entry,
     # we report that entry instead.
@@ -147,4 +137,7 @@ def report(name: str = ""):
             name = name or caller_id.label
             timer = subtimer
 
-    reporting.report(timer, name)
+    from . import reporting
+
+    reporter = reporting.RichReporter(name)
+    reporter.report(timer)

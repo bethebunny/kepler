@@ -1,7 +1,6 @@
 import colorsys
 from dataclasses import dataclass, field
-import typing
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Sequence
 
 import numpy as np
 import numpy.typing as npt
@@ -99,53 +98,75 @@ DEFAULT_METRICS = (
 )
 
 
+CallStack = list[str]
+
+
 @dataclass
 class Event:
-    call_path: list[str]
+    call_stack: CallStack
     times: npt.NDArray[np.float64]
+    metrics: dict[str, Any]
 
     @property
     def name(self):
-        return self.call_path[-1]
+        return self.call_stack[-1]
 
     @property
     def indented_name(self, indent: str = "  "):
-        return indent * (len(self.call_path) - 1) + self.name
+        return indent * (len(self.call_stack) - 1) + self.name
 
 
-def flat_events(timer: Timer, call_stack: list[str] = []) -> Iterable[Event]:
-    yield Event(call_stack, np.array(timer.events))
+def flat_timers(
+    timer: Timer, call_stack: list[str] = []
+) -> Iterable[tuple[CallStack, Timer]]:
+    yield (call_stack, timer)
     for caller_id, timer in timer.timers.items():
-        yield from flat_events(timer, call_stack + [caller_id.label])
+        yield from flat_timers(timer, call_stack + [caller_id.label])
 
 
-def report(
-    timer: Timer, name: str, metrics: typing.Iterable[Metric] = DEFAULT_METRICS
-):
-    events = list(flat_events(timer, []))
-    metric_rows = [
-        [metric.compute(e.times) for metric in metrics] for e in events
-    ]
-    formatted_columns = [
-        metric.format(np.array(column))
-        for metric, column in zip(metrics, zip(*metric_rows))
-    ]
-    summary, *rows = list(zip(*formatted_columns))
+class Reporter:
+    def report(self, timer: Timer):
+        pass
 
-    report = table.Table(
-        title=f"Timings for [b][blue]{name} :stopwatch:[/blue][/b]",
-        show_footer=True,
-        row_styles=("", "on black"),
-        title_style="white",
-    )
+    def events(self, timer: Timer, metrics: Sequence[Metric]) -> list[Event]:
+        return [
+            Event(
+                call_stack,
+                (times := np.array(timer.events)),
+                {metric.name: metric.compute(times) for metric in metrics},
+            )
+            for call_stack, timer in flat_timers(timer)
+        ]
 
-    report.add_column("Stage", "Total", style="bold blue")
-    for metric, footer in zip(metrics, summary):
-        kwargs = {"justify": "right", **metric.rich_args}
-        report.add_column(metric.name, footer=footer, **kwargs)
 
-    # First event is summary
-    for event, row in zip(events[1:], rows):
-        report.add_row(event.indented_name, *row, end_section=False)
+@dataclass
+class RichReporter(Reporter):
+    name: str
+    metrics: tuple[Metric, ...] = DEFAULT_METRICS
 
-    console.Console().print(report)
+    def report(self, timer: Timer):
+        events = self.events(timer, self.metrics)
+        columns = [
+            (metric, np.array([event.metrics[metric.name] for event in events]))
+            for metric in self.metrics
+        ]
+        formatted_columns = [metric.format(col) for metric, col in columns]
+        summary, *rows = list(zip(*formatted_columns))
+
+        report = table.Table(
+            title=f"Timings for [b][blue]{self.name} :stopwatch:[/blue][/b]",
+            show_footer=True,
+            row_styles=("", "on black"),
+            title_style="white",
+        )
+
+        report.add_column("Stage", "Total", style="bold blue")
+        for metric, footer in zip(self.metrics, summary):
+            kwargs = {"justify": "right", **metric.rich_args}
+            report.add_column(metric.name, footer=footer, **kwargs)
+
+        # First event is summary
+        for event, row in zip(events[1:], rows):
+            report.add_row(event.indented_name, *row, end_section=False)
+
+        console.Console().print(report)

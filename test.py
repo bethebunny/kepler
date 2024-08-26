@@ -6,13 +6,19 @@ import kepler
 
 @kepler.time("do some stuff")
 def do_some_stuff():
-    split = kepler.stopwatch()
+    # TODO: sort watches to the bottom
+    # TODO: un-highlight watch sections, or find some other way
+    #     to distinguish them
+    split = kepler.stopwatch("watch")
     for i in kepler.time("loop", range(20)):
         with kepler.time("sleep"):
             time.sleep(random.random() / 100)
         if i % 2 == 1:
             with kepler.time("overhead"):
                 split("odd")
+        else:
+            with kepler.time("overhead"):
+                split("even")
 
 
 @kepler.time
