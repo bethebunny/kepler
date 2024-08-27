@@ -111,8 +111,16 @@ Histogram = tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]
 def sparkline(hist: Histogram):
     counts, _ = hist
     pixel_height = 4
-    bin_height = np.ceil(3 * pixel_height * counts / counts.sum())
-    return brail(bin_height.clip(max=pixel_height).astype(np.int8))
+    # To get a reasonable histogram of the data with 4 pixels of y axis:
+    # - linearly scale the bin counts
+    # - set y limit to pixel_height / bin size
+    #   - this puts approximately uniform distributions right on the boundary
+    #     between 1 and 2 pixels
+    # - always put at least 1 pixel per non-empty bin
+    ymax = pixel_height / len(counts)
+    normed = pixel_height * counts / (counts.sum() * ymax)
+    normed = np.where((normed > 0) & (normed.round() == 0), 1, normed.round())
+    return brail(normed.clip(max=pixel_height).astype(np.int8))
 
 
 def colored_sparklines(hists: list[Histogram]):
