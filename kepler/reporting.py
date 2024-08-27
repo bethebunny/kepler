@@ -31,9 +31,9 @@ def gradient_td(timedeltas: list[float]):
 
 def hls_color_gradient(
     array: Sequence[float],
-    smoothing: float = 1,
-    # low is bluish green, high is red
-    h_range: tuple[float, float] = (0, 0.6),
+    smoothing: float = 0.5,
+    # lower bound is red (higher time), upper bound is bluish green (lower time)
+    h_range: tuple[float, float] = (0.0, 0.6),
     l_range: tuple[float, float] = (0.5, 0.5),
     s_range: tuple[float, float] = (1, 1),
     reversed: bool = False,
@@ -111,11 +111,8 @@ Histogram = tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]
 def sparkline(hist: Histogram):
     counts, _ = hist
     pixel_height = 4
-    cmin, cmax = counts.min(), counts.max()
-    bin_height = (
-        ((counts - cmin) / (cmax - cmin) * pixel_height).round().astype(np.int8)
-    )
-    return brail(bin_height)
+    bin_height = np.ceil(3 * pixel_height * counts / counts.sum())
+    return brail(bin_height.clip(max=pixel_height).astype(np.int8))
 
 
 def colored_sparklines(hists: list[Histogram]):
