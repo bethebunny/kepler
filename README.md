@@ -2,7 +2,8 @@
 
 Wish you could see stuff like this about your program?
 
-<img width="1145" alt="image" src="https://github.com/user-attachments/assets/c05850d4-7f34-436c-9248-89e17753ac60">
+<img width="1227" alt="image" src="https://github.com/user-attachments/assets/aa60de68-2648-4794-a29c-873365bc077b">
+
 
 Kepler meticulously tracks your program, and creates simply and easily readable reports to help you understand what they're doing.
 
