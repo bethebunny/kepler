@@ -38,7 +38,9 @@ def hls_color_gradient(
     s_range: tuple[float, float] = (1, 1),
     reversed: bool = False,
 ) -> list[str]:
-    log = np.log(array)
+    a = np.array(array)
+    clip_min = a[a >= 0].min()
+    log = np.log(a.clip(clip_min))
     min = log.min() - smoothing
     max = log.max() + smoothing
     log_normed = (log - min) / (max - min)
@@ -171,7 +173,7 @@ def flat_timers(
         yield stack, timer
         yield from flat_timers(timer.context, stack)
     for caller_id, sw_ctx in ctx.stopwatches.items():
-        name = f":stopwatch: {caller_id}"
+        name = f":stopwatch: {caller_id.label}"
         yield from flat_timers(sw_ctx, call_stack + [name])
 
 
@@ -223,7 +225,6 @@ class RichReporter(Reporter):
                 event.call_stack = event.call_stack[len(prefix) :]
 
         title = f"Timings for [b][blue]{name} :stopwatch:[/blue][/b]"
-        # TODO: figure out how to format stopwatch regions
 
         report = table.Table(
             title=title, row_styles=("", "on black"), title_style="white"
@@ -244,7 +245,15 @@ class RichReporter(Reporter):
                 kwargs = {"justify": "right", **metric.rich_args}
                 report.add_column(metric.name, **kwargs)  # type: ignore
 
+        prev_stack: CallStack = []
         for event, row in rows:
+            stack = event.call_stack
+            prefix = common_prefix(prev_stack, stack)
+            if len(stack) - len(prefix) > 1:
+                new_context = stack[len(prefix) : -1]
+                report.add_row("  " * len(prefix) + " ".join(new_context))
+            prev_stack = stack
+
             report.add_row(event.indented_name, *row, end_section=False)
 
         console.Console().print(report)
