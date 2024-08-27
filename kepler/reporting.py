@@ -214,7 +214,6 @@ class RichReporter(Reporter):
             (metric, [event.metrics[metric.name] for event in events])
             for metric in self.metrics
         ]
-        console.Console().print(columns)
         formatted_columns = [metric.format(col) for metric, col in columns]
         rows = list(zip(events, zip(*formatted_columns)))
 
