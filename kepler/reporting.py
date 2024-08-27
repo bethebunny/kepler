@@ -19,18 +19,18 @@ SECONDS_IN_DAY = 24 * SECONDS_IN_HOUR
 class Metric:
     name: str
     compute: Callable[[npt.NDArray[np.float64]], int | float]
-    format: Callable[[npt.NDArray[Any]], Any] = np.vectorize(pretty.Pretty)
+    format: Callable[[list[Any]], Any] = np.vectorize(pretty.Pretty)
     rich_args: dict[str, Any] = field(default_factory=dict)
 
 
-def gradient_td(timedeltas: npt.NDArray[np.float64]):
+def gradient_td(timedeltas: list[float]):
     formatted = np.vectorize(format_timedelta)(timedeltas)
     colors = hls_color_gradient(timedeltas)
     return [text.Text(td, style=color) for td, color in zip(formatted, colors)]
 
 
 def hls_color_gradient(
-    array: npt.NDArray[Any],
+    array: Sequence[float],
     smoothing: float = 1,
     # low is bluish green, high is red
     h_range: tuple[float, float] = (0, 0.6),
@@ -88,10 +88,56 @@ def format_timedelta(seconds: float):
         return f"{seconds * 1e9:.1f}ns"
 
 
+def histogram(timedeltas: npt.NDArray[np.float64], bins: int = 20):
+    return np.histogram(timedeltas, bins=bins)
+
+
+def brail(data: npt.NDArray[np.int8]):
+    def brail_chr(pair: tuple[int, int]):
+        left_offset: int = [0, 0x40, 0x44, 0x46, 0x47][pair[0]]
+        right_offset: int = [0, 0x80, 0xA0, 0xB0, 0xB8][pair[1]]
+        return chr(0x2800 + left_offset + right_offset)
+
+    if len(data) % 2:
+        data = np.append(data, [0])
+    return "".join(brail_chr(pair) for pair in data.reshape((-1, 2)))
+
+
+Histogram = tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]
+
+
+def sparkline(hist: Histogram):
+    counts, _ = hist
+    pixel_height = 4
+    cmin, cmax = counts.min(), counts.max()
+    bin_height = (
+        ((counts - cmin) / (cmax - cmin) * pixel_height).round().astype(np.int8)
+    )
+    return brail(bin_height)
+
+
+def colored_sparklines(hists: list[Histogram]):
+    bins = [hist[1] for hist in hists]
+    bin_upper_bounds = np.stack([b[1:] for b in bins])
+    colors = hls_color_gradient(list(bin_upper_bounds.reshape(-1)))
+    hist_colors = np.array(colors).reshape(bin_upper_bounds.shape)
+    for hist, colors in zip(hists, hist_colors):
+        line = text.Text()
+        for rune, color in zip(sparkline(hist), colors[::2]):
+            line.append(rune, style=color)
+        yield line
+
+
 DEFAULT_METRICS = (
     Metric("Count", len),
     Metric("Total", np.sum, format=gradient_td),
     Metric("Average", np.mean, format=gradient_td),
+    Metric("Min", np.min, format=gradient_td),
+    Metric(
+        "Histogram",
+        lambda a: np.histogram(a, bins=20),
+        format=colored_sparklines,
+    ),
     Metric("Max", np.max, format=gradient_td),
     Metric("P50", lambda a: float(np.percentile(a, 50)), format=gradient_td),
     Metric("P90", lambda a: float(np.percentile(a, 90)), format=gradient_td),
@@ -163,9 +209,10 @@ class RichReporter(Reporter):
         prefix = functools.reduce(common_prefix, (e.call_stack for e in events))
 
         columns = [
-            (metric, np.array([event.metrics[metric.name] for event in events]))
+            (metric, [event.metrics[metric.name] for event in events])
             for metric in self.metrics
         ]
+        console.Console().print(columns)
         formatted_columns = [metric.format(col) for metric, col in columns]
         rows = list(zip(events, zip(*formatted_columns)))
 
