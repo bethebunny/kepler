@@ -8,6 +8,7 @@ import numpy.typing as npt
 from rich import console, pretty, table, text
 
 from .timer import Timer, TimerContext
+from .units import format_timedelta_ns
 
 
 SECONDS_IN_MINUTE = 60
@@ -24,7 +25,7 @@ class Metric:
 
 
 def gradient_td(timedeltas: list[float]):
-    formatted = np.vectorize(format_timedelta)(timedeltas)
+    formatted = np.vectorize(format_timedelta_ns)(timedeltas)
     colors = hls_color_gradient(timedeltas)
     return [text.Text(td, style=color) for td, color in zip(formatted, colors)]
 
@@ -56,38 +57,6 @@ def hls_color_gradient(
         return color
 
     return [hue_to_color(*hls) for hls in zip(h, l, s)]
-
-
-def format_timedelta(seconds: float):
-    if seconds > 60:
-        days, seconds = int(seconds // SECONDS_IN_DAY), seconds % SECONDS_IN_DAY
-        hours, seconds = (
-            int(seconds // SECONDS_IN_HOUR),
-            seconds % SECONDS_IN_HOUR,
-        )
-        minutes, seconds = (
-            int(seconds // SECONDS_IN_MINUTE),
-            seconds % SECONDS_IN_MINUTE,
-        )
-        if days:
-            if minutes >= 30:
-                hours += 1
-            return f"{days}d{hours}h"
-        elif hours:
-            if seconds >= 30:
-                minutes += 1
-            return f"{hours}h{minutes}m"
-        else:
-            seconds = int(round(seconds))
-            return f"{minutes}m{seconds}s"
-    elif seconds > 1:
-        return f"{seconds:.1f}s"
-    elif seconds > 0.001:
-        return f"{seconds * 1000:.1f}ms"
-    elif seconds > 1e-6:
-        return f"{seconds * 1000000:.1f}us"
-    else:
-        return f"{seconds * 1e9:.1f}ns"
 
 
 def histogram(timedeltas: npt.NDArray[np.float64], bins: int = 20):
@@ -193,9 +162,7 @@ class Reporter:
     def report(self, ctx: TimerContext):
         pass
 
-    def events(
-        self, ctx: TimerContext, metrics: Sequence[Metric]
-    ) -> list[Event]:
+    def events(self, ctx: TimerContext, metrics: Sequence[Metric]) -> list[Event]:
         return [
             Event(
                 call_stack,
