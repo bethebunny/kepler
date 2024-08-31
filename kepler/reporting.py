@@ -11,11 +11,6 @@ from .timer import Timer, TimerContext
 from .units import format_timedelta_ns
 
 
-SECONDS_IN_MINUTE = 60
-SECONDS_IN_HOUR = 60 * SECONDS_IN_MINUTE
-SECONDS_IN_DAY = 24 * SECONDS_IN_HOUR
-
-
 @dataclass
 class Metric:
     name: str
