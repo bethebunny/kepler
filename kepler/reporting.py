@@ -1,7 +1,8 @@
+from __future__ import annotations
 import colorsys
 from dataclasses import dataclass, field
 import functools
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any, Callable, Iterable, Optional, Sequence
 
 import numpy as np
 import numpy.typing as npt
@@ -15,43 +16,52 @@ from .units import format_timedelta_ns
 class Metric:
     name: str
     compute: Callable[[npt.NDArray[np.float64]], int | float]
-    format: Callable[[list[Any]], Any] = np.vectorize(pretty.Pretty)
+    _format: Callable[[list[Any]], Any] = np.vectorize(pretty.Pretty)
+    format: Callable[[Any, FormatMetadata], Any] = lambda v, *_: pretty.Pretty(v)
     rich_args: dict[str, Any] = field(default_factory=dict)
 
 
-def gradient_td(timedeltas: list[float]):
-    formatted = np.vectorize(format_timedelta_ns)(timedeltas)
-    colors = hls_color_gradient(timedeltas)
-    return [text.Text(td, style=color) for td, color in zip(formatted, colors)]
+@dataclass
+class FormatMetadata:
+    metric: Metric
+    events: list[Event]
+    data_range: tuple[float, float]
+
+
+def gradient_td(timedelta: float, meta: FormatMetadata):
+    color_norm = log_feature_norm(timedelta, *meta.data_range, smoothing=0.5)
+    return text.Text(
+        format_timedelta_ns(timedelta), style=hls_color_gradient(color_norm)
+    )
+
+
+def feature_norm(
+    data: npt.NDArray[np.float64], range: Optional[tuple[float, float]] = None
+):
+    ymin, ymax = range or (data.min(), data.max())
+    return (data - ymin) / (ymax - ymin)
+
+
+def log_feature_norm(value: float, ymin: float, ymax: float, smoothing: float):
+    lmin, lmax = np.log(ymin), np.log(ymax)
+    ltd = np.log(np.clip(value, ymin, ymax))
+    return feature_norm(ltd, range=(lmin - smoothing, lmax + smoothing))
 
 
 def hls_color_gradient(
-    array: Sequence[float],
-    smoothing: float = 0.5,
+    normed: float,  # in range [0, 1]
     # lower bound is red (higher time), upper bound is bluish green (lower time)
-    h_range: tuple[float, float] = (0.0, 0.6),
+    h_range: tuple[float, float] = (0.6, 0.0),
     l_range: tuple[float, float] = (0.5, 0.5),
     s_range: tuple[float, float] = (1, 1),
-    reversed: bool = False,
 ) -> list[str]:
-    a = np.array(array)
-    clip_min = a[a >= 0].min()
-    log = np.log(a.clip(clip_min))
-    min = log.min() - smoothing
-    max = log.max() + smoothing
-    log_normed = (log - min) / (max - min)
-    if not reversed:
-        log_normed = 1 - log_normed
-    h = h_range[0] + (h_range[1] - h_range[0]) * log_normed
-    l = l_range[0] + (l_range[1] - l_range[0]) * log_normed
-    s = s_range[0] + (s_range[1] - s_range[0]) * log_normed
-
-    def hue_to_color(h: float, l: float, s: float):
-        rn, gn, bn = colorsys.hls_to_rgb(h, l, s)
-        color = f"rgb({int(rn * 255)},{int(gn * 255)},{int(bn * 255)})"
-        return color
-
-    return [hue_to_color(*hls) for hls in zip(h, l, s)]
+    assert 0 <= normed <= 1
+    scale = lambda value, ymin, ymax: (ymin + (ymax - ymin) * value)
+    # Values are between 0 and 1
+    rn, gn, bn = colorsys.hls_to_rgb(
+        scale(normed, *h_range), scale(normed, *l_range), scale(normed, *s_range)
+    )
+    return f"rgb({int(rn * 255)},{int(gn * 255)},{int(bn * 255)})"
 
 
 def histogram(timedeltas: npt.NDArray[np.float64], bins: int = 20):
@@ -87,16 +97,16 @@ def sparkline(hist: Histogram):
     return brail(normed.clip(max=pixel_height).astype(np.int8))
 
 
-def colored_sparklines(hists: list[Histogram]):
-    bins = [hist[1] for hist in hists]
-    bin_upper_bounds = np.stack([b[1:] for b in bins])
-    colors = hls_color_gradient(list(bin_upper_bounds.reshape(-1)))
-    hist_colors = np.array(colors).reshape(bin_upper_bounds.shape)
-    for hist, colors in zip(hists, hist_colors):
-        line = text.Text()
-        for rune, color in zip(sparkline(hist), colors[::2]):
-            line.append(rune, style=color)
-        yield line
+def colored_sparkline(hist: Histogram, meta: FormatMetadata):
+    _, bins = hist
+    bin_means = np.stack((bins[1:], bins[:-1]), axis=1).mean(axis=1)
+    line = text.Text()
+    for rune, (ymin, ymax) in zip(sparkline(hist), bin_means.reshape(-1, 2)):
+        color_norm = log_feature_norm(
+            np.mean((ymin, ymax)), *meta.data_range, smoothing=0.5
+        )
+        line.append(rune, style=hls_color_gradient(color_norm))
+    return line
 
 
 DEFAULT_METRICS = (
@@ -107,7 +117,7 @@ DEFAULT_METRICS = (
     Metric(
         "Histogram",
         lambda a: np.histogram(a, bins=20),
-        format=colored_sparklines,
+        format=colored_sparkline,
     ),
     Metric("Max", np.max, format=gradient_td),
     Metric("P50", lambda a: float(np.percentile(a, 50)), format=gradient_td),
@@ -161,7 +171,7 @@ class Reporter:
         return [
             Event(
                 call_stack,
-                (times := np.array(timer.events)),
+                times := timer.events,
                 {metric.name: metric.compute(times) for metric in metrics},
             )
             for call_stack, timer in flat_timers(ctx)
@@ -175,16 +185,33 @@ class RichReporter(Reporter):
 
     def report(self, ctx: TimerContext):
         events = self.events(ctx, self.metrics)
-        prefix = functools.reduce(common_prefix, (e.call_stack for e in events))
 
-        columns = [
-            (metric, [event.metrics[metric.name] for event in events])
-            for metric in self.metrics
+        # columns = [
+        #     (metric, [event.metrics[metric.name] for event in events])
+        #     for metric in self.metrics
+        # ]
+        # formatted_columns = [metric.format(col) for metric, col in columns]
+        # rows = list(zip(events, zip(*formatted_columns)))
+        data_range = (
+            min(min(event.times) for event in events if event.times),
+            max(max(event.times) for event in events if event.times),
+        )
+        rows = [
+            (
+                event,
+                [
+                    metric.format(
+                        event.metrics[metric.name],
+                        FormatMetadata(metric, events, data_range),
+                    )
+                    for metric in self.metrics
+                ],
+            )
+            for event in events
         ]
-        formatted_columns = [metric.format(col) for metric, col in columns]
-        rows = list(zip(events, zip(*formatted_columns)))
 
         name = self.name
+        prefix = functools.reduce(common_prefix, (e.call_stack for e in events))
         if prefix:
             name = (f"{name}: " if name else "") + " -> ".join(prefix)
             for event in events:
