@@ -186,12 +186,6 @@ class RichReporter(Reporter):
     def report(self, ctx: TimerContext):
         events = self.events(ctx, self.metrics)
 
-        # columns = [
-        #     (metric, [event.metrics[metric.name] for event in events])
-        #     for metric in self.metrics
-        # ]
-        # formatted_columns = [metric.format(col) for metric, col in columns]
-        # rows = list(zip(events, zip(*formatted_columns)))
         data_range = (
             min(min(event.times) for event in events if event.times),
             max(max(event.times) for event in events if event.times),
