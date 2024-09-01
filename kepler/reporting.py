@@ -186,6 +186,9 @@ class RichReporter(Reporter):
     def report(self, ctx: TimerContext):
         events = self.events(ctx, self.metrics)
 
+        if not events:
+            raise ValueError("No times to report!")
+
         data_range = (
             min(min(event.times) for event in events if event.times),
             max(max(event.times) for event in events if event.times),
