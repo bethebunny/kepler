@@ -29,7 +29,7 @@ class HLSColorGradient:
         clipped = np.clip(value, *range)
         return self.feature_norm(np.log(clipped), range=np.log(range))
 
-    def hls(self, value: float):
+    def hls(self, value: float) -> tuple[float, float, float]:
         assert 0 <= value <= 1
         scale = lambda value, ymin, ymax: (ymin + (ymax - ymin) * value)
         return (

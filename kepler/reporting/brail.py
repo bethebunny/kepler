@@ -1,4 +1,5 @@
 import itertools
+from typing import Iterable
 
 # Per https://en.wikipedia.org/wiki/Braille_Patterns
 # the hex values of Brail unicode codes begin at 0x2800, and each
@@ -26,5 +27,5 @@ def brail_bar_chr(left: int, right: int = 0):
     return chr(0x2800 + left_offset + right_offset)
 
 
-def brail_bars(data: list[int]) -> str:
+def brail_bars(data: Iterable[int]) -> str:
     return "".join(brail_bar_chr(*pair) for pair in itertools.batched(data, 2))

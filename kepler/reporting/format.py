@@ -16,11 +16,12 @@ from .units import format_timedelta_ns
 
 flatten = itertools.chain.from_iterable
 Histogram: TypeAlias = tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]
-T = TypeVar("T")
+T = TypeVar("T", contravariant=True)
 
 
 class Formatter(Protocol, Generic[T]):
-    def format(self, value: T, meta: FormatMetadata) -> Any: ...
+    def format(self, value: T, /, meta: FormatMetadata) -> Any:
+        ...
 
 
 @dataclass
@@ -44,9 +45,9 @@ class Pretty(Formatter[Any]):
 class TimedeltaFormatter:
     gradient: HLSColorGradient = field(default_factory=HLSColorGradient)
 
-    def format(self, timedelta: float, meta: FormatMetadata) -> text.Text:
-        color = self.gradient.color(timedelta, meta.data_range)
-        return text.Text(format_timedelta_ns(timedelta), style=color)
+    def format(self, nanos: int, meta: FormatMetadata) -> text.Text:
+        color = self.gradient.color(nanos, meta.data_range)
+        return text.Text(format_timedelta_ns(nanos), style=color)
 
 
 @dataclass
@@ -76,5 +77,7 @@ class Sparkline:
         # - always put at least 1 pixel per non-empty bin
         ymax = pixel_height / len(counts)
         normed = pixel_height * counts / (counts.sum() * ymax)
-        normed = np.where((normed > 0) & (normed.round() == 0), 1, normed.round())
+        normed = np.where(
+            (normed > 0) & (normed.round() == 0), 1, normed.round()
+        )
         return brail_bars(normed.clip(max=pixel_height).astype(np.int8))

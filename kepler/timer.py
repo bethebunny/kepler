@@ -5,6 +5,7 @@ import contextlib
 import contextvars
 from dataclasses import dataclass
 import inspect
+from time import perf_counter_ns as current_time
 import time
 from types import FrameType
 import typing
@@ -12,9 +13,6 @@ from typing import Callable, Generator, Iterable, Mapping, Optional
 
 
 GeneratorContextManager = contextlib._GeneratorContextManager  # type: ignore
-
-
-current_time = time.perf_counter_ns
 
 
 @dataclass(frozen=True)
@@ -67,13 +65,16 @@ class Timer:
                 yield value
                 current_iter = self.log(current_iter)
 
+    def stopwatch(self, name: str):
+        return self.context.stopwatch(name)
+
 
 class TimerContext:
     def __init__(self):
         self.timers: Mapping[CallerID, Timer] = collections.defaultdict(Timer)
-        self.stopwatches: Mapping[CallerID, TimerContext] = collections.defaultdict(
-            TimerContext
-        )
+        self.stopwatches: Mapping[
+            CallerID, TimerContext
+        ] = collections.defaultdict(TimerContext)
         self._tokens: list[contextvars.Token[TimerContext]] = []
 
     def __getitem__(self, caller_id: CallerID) -> Timer:
@@ -111,15 +112,18 @@ T = typing.TypeVar("T")
 
 
 @typing.overload
-def time(label: str) -> GeneratorContextManager[None]: ...
+def time(label: str) -> GeneratorContextManager[None]:
+    ...
 
 
 @typing.overload
-def time(label: str, it: Iterable[T]) -> Generator[T]: ...
+def time(label: str, it: Iterable[T]) -> Generator[T]:
+    ...
 
 
 @typing.overload
-def time(label: Callable[P, R]) -> Callable[P, R]: ...
+def time(label: Callable[P, R]) -> Callable[P, R]:
+    ...
 
 
 def time(label: str | Callable[P, R], it: Optional[Iterable[T]] = None):
@@ -147,7 +151,7 @@ def stopwatch(name: str):
 
 
 def report(name: str = ""):
-    from .report.reporter import RichReporter
+    from .reporting import RichReporter
 
     reporter = RichReporter(name)
     reporter.report(current_context())

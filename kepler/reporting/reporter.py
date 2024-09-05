@@ -23,7 +23,8 @@ T = TypeVar("T")
 
 
 class Reporter(Protocol):
-    def report(self, ctx: TimerContext): ...
+    def report(self, ctx: TimerContext):
+        ...
 
 
 @dataclass
@@ -64,7 +65,10 @@ def flat_timers(
 
 
 def flat_events(ctx: TimerContext) -> list[Event]:
-    return [Event(call_stack, timer.events) for call_stack, timer in flat_timers(ctx)]
+    return [
+        Event(call_stack, timer.events)
+        for call_stack, timer in flat_timers(ctx)
+    ]
 
 
 def common_prefix(l: CallStack, r: CallStack) -> CallStack:
