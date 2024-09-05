@@ -147,7 +147,7 @@ def stopwatch(name: str):
 
 
 def report(name: str = ""):
-    from . import reporting
+    from .report.reporter import RichReporter
 
-    reporter = reporting.RichReporter(name)
+    reporter = RichReporter(name)
     reporter.report(current_context())

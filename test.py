@@ -29,11 +29,16 @@ def main():
 
 
 if __name__ == "__main__":
-    # for _ in range(20):
-    main()
+    for _ in range(2):
+        main()
     try:
         kepler.report()
     except Exception as e:
-        import pdb
+        from rich import traceback
 
-        pdb.post_mortem(e.__traceback__)
+        traceback.install()
+        raise
+
+        # import pdb
+
+        # pdb.post_mortem(e.__traceback__)
