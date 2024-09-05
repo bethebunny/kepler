@@ -115,7 +115,7 @@ class RichReporter:
         for prev_event, event in zip([None, *events], events):
             if prev_event:  # Add context rows if necessary
                 prefix = common_prefix(prev_event.call_stack, event.call_stack)
-                for i in range(len(prefix), len(event.call_stack) - 1):
+                for i in range(len(prefix) + 1, len(event.call_stack)):
                     report.add_row(indent_label(event.call_stack[:i]))
 
             cells = [metric.format(event, meta) for metric in self.metrics]
