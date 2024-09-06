@@ -4,9 +4,9 @@ import collections
 import contextlib
 import contextvars
 from dataclasses import dataclass
+import functools
 import inspect
 from time import perf_counter_ns as current_time
-import time
 from types import FrameType
 import typing
 from typing import Callable, Generator, Iterable, Mapping, Optional
@@ -142,16 +142,25 @@ def time(label: str | Callable[P, R], it: Optional[Iterable[T]] = None):
 # the context at decoration time.
 @contextlib.contextmanager
 def _time(caller_id: CallerID):
-    with current_context()[caller_id].time():
-        yield
+    with current_context()[caller_id].time() as timer:
+        yield timer
 
 
 def stopwatch(name: str):
     return current_context().stopwatch(name)
 
 
-def report(name: str = ""):
+def report(name: str = "", context: Optional[TimerContext] = None):
     from .reporting import RichReporter
 
     reporter = RichReporter(name)
-    reporter.report(current_context())
+    reporter.report(context or current_context())
+
+
+@contextlib.contextmanager
+def time_and_report(label: str):
+    with _time(CallerID.from_caller(label)):
+        try:
+            yield
+        finally:
+            report(label)

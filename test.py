@@ -21,24 +21,13 @@ def do_some_stuff():
                 split("even")
 
 
-@kepler.time
+@kepler.time_and_report("main")
 def main():
-    with kepler.time("sloooow"):
-        time.sleep(0.3)
-    do_some_stuff()
+    for _ in range(2):
+        with kepler.time("sloooow"):
+            time.sleep(0.3)
+        do_some_stuff()
 
 
 if __name__ == "__main__":
-    for _ in range(2):
-        main()
-    try:
-        kepler.report()
-    except Exception as e:
-        from rich import traceback
-
-        traceback.install()
-        raise
-
-        # import pdb
-
-        # pdb.post_mortem(e.__traceback__)
+    main()

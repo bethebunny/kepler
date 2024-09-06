@@ -1,5 +1,5 @@
 import itertools
-from typing import Iterable
+from typing import Iterable, TypeVar
 
 # Per https://en.wikipedia.org/wiki/Braille_Patterns
 # the hex values of Brail unicode codes begin at 0x2800, and each
@@ -28,4 +28,15 @@ def brail_bar_chr(left: int, right: int = 0):
 
 
 def brail_bars(data: Iterable[int]) -> str:
-    return "".join(brail_bar_chr(*pair) for pair in itertools.batched(data, 2))
+    return "".join(brail_bar_chr(*pair) for pair in _batched(data, 2))
+
+
+T = TypeVar("T")
+
+
+def _batched(it: Iterable[T], n: int):
+    # Recipe taken from Python itertools, added in 3.12
+    # batched('ABCDEFG', 3) → ABC DEF G
+    it = iter(it)
+    while batch := tuple(itertools.islice(it, n)):
+        yield batch
