@@ -12,7 +12,7 @@ from rich import pretty, text
 from .color import HLSColorGradient
 from .brail import brail_bars
 from .event import Event
-from .units import format_timedelta_ns
+from .units import Time
 
 flatten = itertools.chain.from_iterable
 Histogram: TypeAlias = tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]
@@ -47,7 +47,8 @@ class TimedeltaFormatter:
 
     def format(self, nanos: int, meta: FormatMetadata) -> text.Text:
         color = self.gradient.color(nanos, meta.data_range)
-        return text.Text(format_timedelta_ns(nanos), style=color)
+        # return text.Text(Time.format_nanos(nanos), style=color)
+        return text.Text(Time.format_nanos(nanos), style=color)
 
 
 @dataclass

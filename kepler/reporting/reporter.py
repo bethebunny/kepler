@@ -5,7 +5,6 @@ from functools import partial
 from typing import Any, Callable, Generic, Iterable, Protocol, TypeVar
 
 import numpy as np
-import numpy.typing as npt
 from rich import console, table
 
 from .event import CallStack, Event
@@ -23,14 +22,13 @@ T = TypeVar("T")
 
 
 class Reporter(Protocol):
-    def report(self, ctx: TimerContext):
-        ...
+    def report(self, ctx: TimerContext): ...
 
 
 @dataclass
 class Metric(Generic[T]):
     name: str
-    compute: Callable[[npt.NDArray[np.float64]], T]
+    compute: Callable[[list[float]], T]
     formatter: Formatter[T] = Pretty()
     rich_args: dict[str, Any] = field(default_factory=dict)
 
