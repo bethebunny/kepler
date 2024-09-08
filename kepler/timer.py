@@ -4,7 +4,6 @@ import collections
 import contextlib
 import contextvars
 from dataclasses import dataclass
-import functools
 import inspect
 from time import perf_counter_ns as current_time
 from types import FrameType
@@ -72,9 +71,9 @@ class Timer:
 class TimerContext:
     def __init__(self):
         self.timers: Mapping[CallerID, Timer] = collections.defaultdict(Timer)
-        self.stopwatches: Mapping[
-            CallerID, TimerContext
-        ] = collections.defaultdict(TimerContext)
+        self.stopwatches: Mapping[CallerID, TimerContext] = (
+            collections.defaultdict(TimerContext)
+        )
         self._tokens: list[contextvars.Token[TimerContext]] = []
 
     def __getitem__(self, caller_id: CallerID) -> Timer:
@@ -112,18 +111,15 @@ T = typing.TypeVar("T")
 
 
 @typing.overload
-def time(label: str) -> GeneratorContextManager[None]:
-    ...
+def time(label: str) -> GeneratorContextManager[None]: ...
 
 
 @typing.overload
-def time(label: str, it: Iterable[T]) -> Generator[T]:
-    ...
+def time(label: str, it: Iterable[T]) -> Generator[T]: ...
 
 
 @typing.overload
-def time(label: Callable[P, R]) -> Callable[P, R]:
-    ...
+def time(label: Callable[P, R]) -> Callable[P, R]: ...
 
 
 def time(label: str | Callable[P, R], it: Optional[Iterable[T]] = None):

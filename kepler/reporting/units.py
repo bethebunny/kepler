@@ -50,7 +50,7 @@ class Unit(enum.Enum):
         return cls.best_unit(units)._format(units, precision=precision)
 
 
-class MetricUnit(Unit):
+class MetricPrefix(Unit):
     QUECTO = ("q", 1e-30)
     RONTO = ("r", 1e-27)
     YOCTO = ("y", 1e-24)
@@ -76,6 +76,10 @@ class MetricUnit(Unit):
     @classmethod
     def default(cls):
         return cls.UNIT
+
+    @classmethod
+    def format_unit(cls, unit_name: str, units: float, precision: int = 3):
+        return f"{cls.format(units, precision=precision)}{unit_name}"
 
 
 class Bytes(Unit):
@@ -106,8 +110,8 @@ class Time(Unit):
         seconds = units
         unit = cls.best_unit(seconds)
         if unit < cls.MINUTE:
-            # Format as a fractional number of the unit, to 3 digits of precision
-            return f"{MetricUnit.format(seconds, precision=precision)}s"
+            # For seconds and below, use normal SI prefixes
+            return MetricPrefix.format_unit("s", seconds, precision=precision)
 
         # Format rounding to the top two units, eg. 2y186d
         units = int(seconds) // unit.order
