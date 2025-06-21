@@ -3,55 +3,31 @@ from __future__ import annotations
 import collections
 import contextlib
 import contextvars
-from dataclasses import dataclass
-import inspect
 from time import perf_counter_ns as current_time
-from types import FrameType
 import typing
 from typing import Callable, Generator, Iterable, Mapping, Optional
 
-# Handle ParamSpec compatibility between Python versions
 try:
     from typing import ParamSpec
-except ImportError:
+except ImportError:  # python 3.9
     from typing_extensions import ParamSpec
+
+from .event import CallerID, Log, ScopedEvents, TimingEvent
 
 
 GeneratorContextManager = contextlib._GeneratorContextManager  # type: ignore
 
 
-@dataclass(frozen=True)
-class CallerID:
-    label: str
-    filename: str
-    lineno: int
-
-    @classmethod
-    def from_frame(cls, label: str, frame: FrameType):
-        return cls(label, inspect.getfile(frame), frame.f_lineno)
-
-    @classmethod
-    def from_fn(cls, fn: Callable[P, R]):
-        code = fn.__code__
-        return cls(fn.__qualname__, code.co_filename, code.co_firstlineno)
-
-    @classmethod
-    def from_caller(cls, label: str, depth: int = 1):
-        frame = inspect.currentframe()
-        for _ in range(depth + 1):
-            frame = frame and frame.f_back
-        if frame:
-            return cls.from_frame(label, frame)
-        return cls(label, "<unknown>", 0)
-
-
 class Timer:
     def __init__(self):
         self.context = TimerContext()
-        self.events: list[float] = []
+        self.events: list[TimingEvent] = []
 
     def log(self, start_time: float):
-        self.events.append((time := current_time()) - start_time)
+        time = current_time()
+        self.events.append(
+            TimingEvent(timestamp=start_time, duration=time - start_time)
+        )
         return time
 
     @contextlib.contextmanager
@@ -72,6 +48,10 @@ class Timer:
 
     def stopwatch(self, name: str):
         return self.context.stopwatch(name)
+
+    def export(self) -> Iterable[ScopedEvents]:
+        yield ScopedEvents(call_stack=(), events=self.events)
+        yield from self.context.export()
 
 
 class TimerContext:
@@ -101,6 +81,19 @@ class TimerContext:
             start = ctx[CallerID.from_caller(label)].log(start)
 
         return split
+
+    def export(self) -> Iterable[ScopedEvents]:
+        for caller_id, timer in self.timers.items():
+            for events in timer.export():
+                yield events.nest_under(caller_id)
+        for caller_id, sw_ctx in self.stopwatches.items():
+            sw_caller_id = CallerID(
+                f":stopwatch: {caller_id.label}",
+                caller_id.filename,
+                caller_id.lineno,
+            )
+            for events in sw_ctx.export():
+                yield events.nest_under(sw_caller_id)
 
 
 _CURRENT_CONTEXT = contextvars.ContextVar[TimerContext]("_CURRENT_CONTEXT")
@@ -152,17 +145,18 @@ def stopwatch(name: str):
     return current_context().stopwatch(name)
 
 
-def report(name: str = "", context: Optional[TimerContext] = None):
+def report(name: str = "", log: Optional[Log] = None):
     from .reporting import RichReporter
 
+    log = log or Log.from_events(current_context().export())
     reporter = RichReporter(name)
-    reporter.report(context or current_context())
+    reporter.report(log)
 
 
 @contextlib.contextmanager
 def time_and_report(label: str):
-    with _time(CallerID.from_caller(label)):
-        try:
+    try:
+        with _time(CallerID.from_caller(label)):
             yield
-        finally:
-            report(label)
+    finally:
+        report(label)

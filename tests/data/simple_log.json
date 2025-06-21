@@ -1,0 +1,856 @@
+[
+  {
+    "call_stack": [
+      {
+        "label": "main",
+        "filename": "/Users/stef/.pyenv/versions/3.12.2/lib/python3.12/contextlib.py",
+        "lineno": 137
+      }
+    ],
+    "events": [
+      {
+        "timestamp": 598072812966541,
+        "duration": 836727250
+      }
+    ]
+  },
+  {
+    "call_stack": [
+      {
+        "label": "main",
+        "filename": "/Users/stef/.pyenv/versions/3.12.2/lib/python3.12/contextlib.py",
+        "lineno": 137
+      },
+      {
+        "label": "sloooow",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 27
+      }
+    ],
+    "events": [
+      {
+        "timestamp": 598072812976208,
+        "duration": 302332917
+      },
+      {
+        "timestamp": 598073234271416,
+        "duration": 300417834
+      }
+    ]
+  },
+  {
+    "call_stack": [
+      {
+        "label": "main",
+        "filename": "/Users/stef/.pyenv/versions/3.12.2/lib/python3.12/contextlib.py",
+        "lineno": 137
+      },
+      {
+        "label": "do some stuff",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 7
+      }
+    ],
+    "events": [
+      {
+        "timestamp": 598073115499333,
+        "duration": 118746000
+      },
+      {
+        "timestamp": 598073534831416,
+        "duration": 114847042
+      }
+    ]
+  },
+  {
+    "call_stack": [
+      {
+        "label": "main",
+        "filename": "/Users/stef/.pyenv/versions/3.12.2/lib/python3.12/contextlib.py",
+        "lineno": 137
+      },
+      {
+        "label": "do some stuff",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 7
+      },
+      {
+        "label": "loop",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 13
+      }
+    ],
+    "events": [
+      {
+        "timestamp": 598073116052750,
+        "duration": 6501500
+      },
+      {
+        "timestamp": 598073122554250,
+        "duration": 7356416
+      },
+      {
+        "timestamp": 598073129910666,
+        "duration": 8713500
+      },
+      {
+        "timestamp": 598073138624166,
+        "duration": 580042
+      },
+      {
+        "timestamp": 598073139204208,
+        "duration": 3880792
+      },
+      {
+        "timestamp": 598073143085000,
+        "duration": 7139291
+      },
+      {
+        "timestamp": 598073150224291,
+        "duration": 3624417
+      },
+      {
+        "timestamp": 598073153848708,
+        "duration": 1346667
+      },
+      {
+        "timestamp": 598073155195375,
+        "duration": 837166
+      },
+      {
+        "timestamp": 598073156032541,
+        "duration": 8081875
+      },
+      {
+        "timestamp": 598073164114416,
+        "duration": 4531750
+      },
+      {
+        "timestamp": 598073168646166,
+        "duration": 5841584
+      },
+      {
+        "timestamp": 598073174487750,
+        "duration": 8562708
+      },
+      {
+        "timestamp": 598073183050458,
+        "duration": 6541500
+      },
+      {
+        "timestamp": 598073189591958,
+        "duration": 7232083
+      },
+      {
+        "timestamp": 598073196824041,
+        "duration": 12051625
+      },
+      {
+        "timestamp": 598073208875666,
+        "duration": 2454334
+      },
+      {
+        "timestamp": 598073211330000,
+        "duration": 11248083
+      },
+      {
+        "timestamp": 598073222578083,
+        "duration": 9760792
+      },
+      {
+        "timestamp": 598073232338875,
+        "duration": 1894500
+      },
+      {
+        "timestamp": 598073534960458,
+        "duration": 3226917
+      },
+      {
+        "timestamp": 598073538187375,
+        "duration": 4844125
+      },
+      {
+        "timestamp": 598073543031500,
+        "duration": 3329833
+      },
+      {
+        "timestamp": 598073546361333,
+        "duration": 8922750
+      },
+      {
+        "timestamp": 598073555284083,
+        "duration": 1936042
+      },
+      {
+        "timestamp": 598073557220125,
+        "duration": 3263625
+      },
+      {
+        "timestamp": 598073560483750,
+        "duration": 3309541
+      },
+      {
+        "timestamp": 598073563793291,
+        "duration": 9608417
+      },
+      {
+        "timestamp": 598073573401708,
+        "duration": 4429917
+      },
+      {
+        "timestamp": 598073577831625,
+        "duration": 9449250
+      },
+      {
+        "timestamp": 598073587280875,
+        "duration": 2650833
+      },
+      {
+        "timestamp": 598073589931708,
+        "duration": 12183458
+      },
+      {
+        "timestamp": 598073602115166,
+        "duration": 4768417
+      },
+      {
+        "timestamp": 598073606883583,
+        "duration": 11019208
+      },
+      {
+        "timestamp": 598073617902791,
+        "duration": 9086917
+      },
+      {
+        "timestamp": 598073626989708,
+        "duration": 2247375
+      },
+      {
+        "timestamp": 598073629237083,
+        "duration": 7471792
+      },
+      {
+        "timestamp": 598073636708875,
+        "duration": 3432583
+      },
+      {
+        "timestamp": 598073640141458,
+        "duration": 1107208
+      },
+      {
+        "timestamp": 598073641248666,
+        "duration": 8417209
+      }
+    ]
+  },
+  {
+    "call_stack": [
+      {
+        "label": "main",
+        "filename": "/Users/stef/.pyenv/versions/3.12.2/lib/python3.12/contextlib.py",
+        "lineno": 137
+      },
+      {
+        "label": "do some stuff",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 7
+      },
+      {
+        "label": "loop",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 13
+      },
+      {
+        "label": "sleep",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 14
+      }
+    ],
+    "events": [
+      {
+        "timestamp": 598073116099875,
+        "duration": 6373916
+      },
+      {
+        "timestamp": 598073122571666,
+        "duration": 7216084
+      },
+      {
+        "timestamp": 598073129944500,
+        "duration": 8490083
+      },
+      {
+        "timestamp": 598073138651041,
+        "duration": 477625
+      },
+      {
+        "timestamp": 598073139228500,
+        "duration": 3777875
+      },
+      {
+        "timestamp": 598073143107708,
+        "duration": 6972417
+      },
+      {
+        "timestamp": 598073150249666,
+        "duration": 3460709
+      },
+      {
+        "timestamp": 598073153875333,
+        "duration": 1217208
+      },
+      {
+        "timestamp": 598073155221625,
+        "duration": 747333
+      },
+      {
+        "timestamp": 598073156055291,
+        "duration": 7935125
+      },
+      {
+        "timestamp": 598073164138500,
+        "duration": 4424000
+      },
+      {
+        "timestamp": 598073168668125,
+        "duration": 5549541
+      },
+      {
+        "timestamp": 598073174515541,
+        "duration": 8435542
+      },
+      {
+        "timestamp": 598073183061458,
+        "duration": 6427708
+      },
+      {
+        "timestamp": 598073189604791,
+        "duration": 7130959
+      },
+      {
+        "timestamp": 598073196833416,
+        "duration": 11930917
+      },
+      {
+        "timestamp": 598073208898291,
+        "duration": 2351750
+      },
+      {
+        "timestamp": 598073211352916,
+        "duration": 11106292
+      },
+      {
+        "timestamp": 598073222595750,
+        "duration": 9636458
+      },
+      {
+        "timestamp": 598073232352291,
+        "duration": 1835209
+      },
+      {
+        "timestamp": 598073534996125,
+        "duration": 3064750
+      },
+      {
+        "timestamp": 598073538212958,
+        "duration": 4732958
+      },
+      {
+        "timestamp": 598073543053916,
+        "duration": 3223834
+      },
+      {
+        "timestamp": 598073546383291,
+        "duration": 8835125
+      },
+      {
+        "timestamp": 598073555305208,
+        "duration": 1856750
+      },
+      {
+        "timestamp": 598073557241375,
+        "duration": 3172541
+      },
+      {
+        "timestamp": 598073560506833,
+        "duration": 3226333
+      },
+      {
+        "timestamp": 598073563814375,
+        "duration": 9519333
+      },
+      {
+        "timestamp": 598073573423416,
+        "duration": 4350500
+      },
+      {
+        "timestamp": 598073577852458,
+        "duration": 9340042
+      },
+      {
+        "timestamp": 598073587304416,
+        "duration": 2532000
+      },
+      {
+        "timestamp": 598073589956333,
+        "duration": 12082458
+      },
+      {
+        "timestamp": 598073602138000,
+        "duration": 4679166
+      },
+      {
+        "timestamp": 598073606905750,
+        "duration": 10925000
+      },
+      {
+        "timestamp": 598073617924500,
+        "duration": 9002000
+      },
+      {
+        "timestamp": 598073627011041,
+        "duration": 2168917
+      },
+      {
+        "timestamp": 598073629258625,
+        "duration": 7375208
+      },
+      {
+        "timestamp": 598073636731583,
+        "duration": 3307583
+      },
+      {
+        "timestamp": 598073640166500,
+        "duration": 1021208
+      },
+      {
+        "timestamp": 598073641270250,
+        "duration": 8335958
+      }
+    ]
+  },
+  {
+    "call_stack": [
+      {
+        "label": "main",
+        "filename": "/Users/stef/.pyenv/versions/3.12.2/lib/python3.12/contextlib.py",
+        "lineno": 137
+      },
+      {
+        "label": "do some stuff",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 7
+      },
+      {
+        "label": "loop",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 13
+      },
+      {
+        "label": "overhead",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 20
+      }
+    ],
+    "events": [
+      {
+        "timestamp": 598073122533583,
+        "duration": 16125
+      },
+      {
+        "timestamp": 598073138549250,
+        "duration": 64708
+      },
+      {
+        "timestamp": 598073143057291,
+        "duration": 20167
+      },
+      {
+        "timestamp": 598073153816916,
+        "duration": 22959
+      },
+      {
+        "timestamp": 598073156007291,
+        "duration": 18000
+      },
+      {
+        "timestamp": 598073168619750,
+        "duration": 19041
+      },
+      {
+        "timestamp": 598073183033875,
+        "duration": 11916
+      },
+      {
+        "timestamp": 598073196809791,
+        "duration": 10542
+      },
+      {
+        "timestamp": 598073211302000,
+        "duration": 19875
+      },
+      {
+        "timestamp": 598073232318625,
+        "duration": 14375
+      },
+      {
+        "timestamp": 598073538150875,
+        "duration": 27375
+      },
+      {
+        "timestamp": 598073546335291,
+        "duration": 18667
+      },
+      {
+        "timestamp": 598073557197458,
+        "duration": 16000
+      },
+      {
+        "timestamp": 598073563769333,
+        "duration": 17042
+      },
+      {
+        "timestamp": 598073577808583,
+        "duration": 16250
+      },
+      {
+        "timestamp": 598073589900750,
+        "duration": 22333
+      },
+      {
+        "timestamp": 598073606858166,
+        "duration": 18167
+      },
+      {
+        "timestamp": 598073626965000,
+        "duration": 18041
+      },
+      {
+        "timestamp": 598073636682375,
+        "duration": 19041
+      },
+      {
+        "timestamp": 598073641224833,
+        "duration": 17083
+      }
+    ]
+  },
+  {
+    "call_stack": [
+      {
+        "label": "main",
+        "filename": "/Users/stef/.pyenv/versions/3.12.2/lib/python3.12/contextlib.py",
+        "lineno": 137
+      },
+      {
+        "label": "do some stuff",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 7
+      },
+      {
+        "label": "loop",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 13
+      },
+      {
+        "label": "overhead",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 17
+      }
+    ],
+    "events": [
+      {
+        "timestamp": 598073129871416,
+        "duration": 29334
+      },
+      {
+        "timestamp": 598073139169541,
+        "duration": 27209
+      },
+      {
+        "timestamp": 598073150191125,
+        "duration": 24416
+      },
+      {
+        "timestamp": 598073155161833,
+        "duration": 24375
+      },
+      {
+        "timestamp": 598073164083666,
+        "duration": 22334
+      },
+      {
+        "timestamp": 598073174444875,
+        "duration": 30458
+      },
+      {
+        "timestamp": 598073189573541,
+        "duration": 13250
+      },
+      {
+        "timestamp": 598073208846750,
+        "duration": 20500
+      },
+      {
+        "timestamp": 598073222552458,
+        "duration": 18625
+      },
+      {
+        "timestamp": 598073234218875,
+        "duration": 10333
+      },
+      {
+        "timestamp": 598073542999875,
+        "duration": 22666
+      },
+      {
+        "timestamp": 598073555259833,
+        "duration": 17542
+      },
+      {
+        "timestamp": 598073560460333,
+        "duration": 16500
+      },
+      {
+        "timestamp": 598073573377666,
+        "duration": 17000
+      },
+      {
+        "timestamp": 598073587251791,
+        "duration": 20917
+      },
+      {
+        "timestamp": 598073602089958,
+        "duration": 17875
+      },
+      {
+        "timestamp": 598073617877416,
+        "duration": 18209
+      },
+      {
+        "timestamp": 598073629213958,
+        "duration": 16333
+      },
+      {
+        "timestamp": 598073640109625,
+        "duration": 23375
+      },
+      {
+        "timestamp": 598073649642916,
+        "duration": 16000
+      }
+    ]
+  },
+  {
+    "call_stack": [
+      {
+        "label": "main",
+        "filename": "/Users/stef/.pyenv/versions/3.12.2/lib/python3.12/contextlib.py",
+        "lineno": 137
+      },
+      {
+        "label": "do some stuff",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 7
+      },
+      {
+        "label": "⏱ watch",
+        "filename": "/Users/stef/timing/kepler/timer.py",
+        "lineno": 145
+      },
+      {
+        "label": "even",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 21
+      }
+    ],
+    "events": [
+      {
+        "timestamp": 598073115587750,
+        "duration": 6958875
+      },
+      {
+        "timestamp": 598073129895750,
+        "duration": 8711958
+      },
+      {
+        "timestamp": 598073139192666,
+        "duration": 3880167
+      },
+      {
+        "timestamp": 598073150210125,
+        "duration": 3624750
+      },
+      {
+        "timestamp": 598073155180583,
+        "duration": 841000
+      },
+      {
+        "timestamp": 598073164100500,
+        "duration": 4534208
+      },
+      {
+        "timestamp": 598073174468500,
+        "duration": 8574833
+      },
+      {
+        "timestamp": 598073189583833,
+        "duration": 7234125
+      },
+      {
+        "timestamp": 598073208862833,
+        "duration": 2454500
+      },
+      {
+        "timestamp": 598073222567208,
+        "duration": 9762667
+      },
+      {
+        "timestamp": 598073534924958,
+        "duration": 3247000
+      },
+      {
+        "timestamp": 598073543017041,
+        "duration": 3332459
+      },
+      {
+        "timestamp": 598073555273583,
+        "duration": 1936625
+      },
+      {
+        "timestamp": 598073560473041,
+        "duration": 3309667
+      },
+      {
+        "timestamp": 598073573390625,
+        "duration": 4430541
+      },
+      {
+        "timestamp": 598073587267708,
+        "duration": 2650333
+      },
+      {
+        "timestamp": 598073602104166,
+        "duration": 4767375
+      },
+      {
+        "timestamp": 598073617891125,
+        "duration": 9088000
+      },
+      {
+        "timestamp": 598073629226500,
+        "duration": 7470541
+      },
+      {
+        "timestamp": 598073640127500,
+        "duration": 1110708
+      }
+    ]
+  },
+  {
+    "call_stack": [
+      {
+        "label": "main",
+        "filename": "/Users/stef/.pyenv/versions/3.12.2/lib/python3.12/contextlib.py",
+        "lineno": 137
+      },
+      {
+        "label": "do some stuff",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 7
+      },
+      {
+        "label": "⏱ watch",
+        "filename": "/Users/stef/timing/kepler/timer.py",
+        "lineno": 145
+      },
+      {
+        "label": "odd",
+        "filename": "/Users/stef/timing/test.py",
+        "lineno": 18
+      }
+    ],
+    "events": [
+      {
+        "timestamp": 598073122546625,
+        "duration": 7349125
+      },
+      {
+        "timestamp": 598073138607708,
+        "duration": 584958
+      },
+      {
+        "timestamp": 598073143072833,
+        "duration": 7137292
+      },
+      {
+        "timestamp": 598073153834875,
+        "duration": 1345708
+      },
+      {
+        "timestamp": 598073156021583,
+        "duration": 8078917
+      },
+      {
+        "timestamp": 598073168634708,
+        "duration": 5833792
+      },
+      {
+        "timestamp": 598073183043333,
+        "duration": 6540500
+      },
+      {
+        "timestamp": 598073196817958,
+        "duration": 12044875
+      },
+      {
+        "timestamp": 598073211317333,
+        "duration": 11249875
+      },
+      {
+        "timestamp": 598073232329875,
+        "duration": 1897083
+      },
+      {
+        "timestamp": 598073538171958,
+        "duration": 4845083
+      },
+      {
+        "timestamp": 598073546349500,
+        "duration": 8924083
+      },
+      {
+        "timestamp": 598073557210208,
+        "duration": 3262833
+      },
+      {
+        "timestamp": 598073563782708,
+        "duration": 9607917
+      },
+      {
+        "timestamp": 598073577821166,
+        "duration": 9446542
+      },
+      {
+        "timestamp": 598073589918041,
+        "duration": 12186125
+      },
+      {
+        "timestamp": 598073606871541,
+        "duration": 11019584
+      },
+      {
+        "timestamp": 598073626979125,
+        "duration": 2247375
+      },
+      {
+        "timestamp": 598073636697041,
+        "duration": 3430459
+      },
+      {
+        "timestamp": 598073641238208,
+        "duration": 8417333
+      }
+    ]
+  }
+]

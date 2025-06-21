@@ -1,15 +1,8 @@
 import time
-import pytest
 
 from kepler import Timer
+from kepler.event import Log
 from kepler.timer import current_context
-from kepler.reporting.reporter import flat_events
-
-
-@pytest.fixture
-def timer():
-    with (timer := Timer()).context:
-        yield timer
 
 
 def test_split(timer: Timer):
@@ -18,6 +11,6 @@ def test_split(timer: Timer):
     time.sleep(0.001)
     split("2")
     time.sleep(0.001)
-    events = flat_events(current_context())
-    assert len(events) == 2
-    assert all("watch" in event.call_stack[0] for event in events)
+    log = Log.from_events(current_context().export())
+    assert len(log.events) == 2
+    assert all("watch" in event.call_stack[0].label for event in log.events)

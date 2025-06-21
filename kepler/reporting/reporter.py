@@ -7,7 +7,7 @@ from typing import Any, Callable, Generic, Iterable, Protocol, TypeVar
 import numpy as np
 from rich import console, table
 
-from .event import CallStack, Event
+from ..event import CallStack, CallerID, Event, Log, ScopedEvents
 from .format import (
     Formatter,
     FormatMetadata,
@@ -32,8 +32,8 @@ class Metric(Generic[T]):
     formatter: Formatter[T] = Pretty()
     rich_args: dict[str, Any] = field(default_factory=dict)
 
-    def format(self, event: Event, meta: FormatMetadata):
-        value = self.compute(event.times)
+    def format(self, event: ScopedEvents, meta: FormatMetadata):
+        value = self.compute([e.value for e in event.events])
         return self.formatter.format(value, meta)
 
 
@@ -50,25 +50,6 @@ DEFAULT_METRICS = (
 )
 
 
-def flat_timers(
-    ctx: TimerContext, call_stack: CallStack = []
-) -> Iterable[tuple[CallStack, Timer]]:
-    for caller_id, timer in ctx.timers.items():
-        stack = call_stack + [caller_id.label]
-        yield stack, timer
-        yield from flat_timers(timer.context, stack)
-    for caller_id, sw_ctx in ctx.stopwatches.items():
-        name = f":stopwatch: {caller_id.label}"
-        yield from flat_timers(sw_ctx, call_stack + [name])
-
-
-def flat_events(ctx: TimerContext) -> list[Event]:
-    return [
-        Event(call_stack, timer.events)
-        for call_stack, timer in flat_timers(ctx)
-    ]
-
-
 def common_prefix(l: CallStack, r: CallStack) -> CallStack:
     for i, (lv, rv) in enumerate(zip(l, r)):
         if lv != rv:
@@ -77,7 +58,7 @@ def common_prefix(l: CallStack, r: CallStack) -> CallStack:
 
 
 def indent_label(call_stack: CallStack, indent: str = "  ") -> str:
-    return indent * (len(call_stack) - 1) + call_stack[-1]
+    return indent * (len(call_stack) - 1) + call_stack[-1].label
 
 
 @dataclass
@@ -85,7 +66,7 @@ class RichReporter:
     name: str
     metrics: tuple[Metric, ...] = DEFAULT_METRICS
 
-    def report(self, ctx: TimerContext):
+    def report(self, log: Log):
         # Report a table with metrics as column names, events as rows
         name = self.name
         title = f"Timings for [b][blue]{name} :stopwatch:[/blue][/b]"
@@ -93,15 +74,20 @@ class RichReporter:
             title=title, row_styles=("", "on black"), title_style="white"
         )
 
-        events = flat_events(ctx)
         # TODO: range upper bound should probably include sums
-        meta = FormatMetadata(events)
+        meta = FormatMetadata(log)
 
         summary = None
-        if events and not events[0].call_stack:
-            # First event is summary
-            summary, *events = events
+        top_level_events = [
+            events for events in log.events if len(events.call_stack) == 1
+        ]
+        if len(top_level_events) == 1:
+            assert top_level_events[0] is log.events[0]
+            summary, *events = log.events
+            events = [e.pop_from_front() for e in events]
             report.show_footer = True
+        else:
+            events = log.events
 
         # Columns are metrics, plus "Stage" at the beginning for labels
         report.add_column(

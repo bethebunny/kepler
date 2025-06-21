@@ -3,12 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import functools
 import itertools
-from typing import Any, Generic, Protocol, TypeVar
+from typing import Any, Generic, Iterable, Protocol, TypeVar
 
-# Handle TypeAlias compatibility between Python versions
 try:
     from typing import TypeAlias
-except ImportError:
+except ImportError:  # python 3.9
     from typing_extensions import TypeAlias
 
 import numpy as np
@@ -17,7 +16,7 @@ from rich import pretty, text
 
 from .color import HLSColorGradient
 from .brail import brail_bars
-from .event import Event
+from ..event import Event, Log
 from .units import Time
 
 flatten = itertools.chain.from_iterable
@@ -31,13 +30,18 @@ class Formatter(Protocol, Generic[T]):
 
 @dataclass
 class FormatMetadata:
-    events: list[Event]
+    log: Log
+
+    @property
+    def all_events(self) -> Iterable[Event]:
+        for event in self.log.events:
+            yield from event.events
 
     @functools.cached_property
     def data_range(self) -> tuple[float, float]:
         return (
-            min(flatten(event.times for event in self.events)),
-            max(flatten(event.times for event in self.events)),
+            min(event.value for event in self.all_events),
+            max(event.value for event in self.all_events),
         )
 
 
@@ -52,7 +56,6 @@ class TimedeltaFormatter:
 
     def format(self, nanos: int, meta: FormatMetadata) -> text.Text:
         color = self.gradient.color(nanos, meta.data_range)
-        # return text.Text(Time.format_nanos(nanos), style=color)
         return text.Text(Time.format_nanos(nanos), style=color)
 
 
@@ -75,15 +78,11 @@ class Sparkline:
     def brail_sparkline(self, hist: Histogram):
         counts, _ = hist
         pixel_height = 4
+
         # To get a reasonable histogram of the data with 4 pixels of y axis:
-        # - linearly scale the bin counts
-        # - set y limit to pixel_height / bin size
-        #   - this puts approximately uniform distributions right on the boundary
-        #     between 1 and 2 pixels
+        # - normalize as a ratio of the mean
+        #   - this puts approximately uniform distributions at 1 pixel height
         # - always put at least 1 pixel per non-empty bin
-        ymax = pixel_height / len(counts)
-        normed = pixel_height * counts / (counts.sum() * ymax)
-        normed = np.where(
-            (normed > 0) & (normed.round() == 0), 1, normed.round()
-        )
-        return brail_bars(normed.clip(max=pixel_height).astype(np.int8))
+        bins = (counts / counts.mean()).round()
+        bins = np.maximum(bins, counts > 0)
+        return brail_bars(bins.clip(max=pixel_height).astype(np.int8))
