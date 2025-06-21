@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import colorsys
 from dataclasses import dataclass
-from typing import TypeAlias
+
+# Handle TypeAlias compatibility between Python versions
+try:
+    from typing import TypeAlias
+except ImportError:
+    from typing_extensions import TypeAlias
 
 import numpy as np
 

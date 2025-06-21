@@ -3,7 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import functools
 import itertools
-from typing import Any, Generic, Protocol, TypeAlias, TypeVar
+from typing import Any, Generic, Protocol, TypeVar
+
+# Handle TypeAlias compatibility between Python versions
+try:
+    from typing import TypeAlias
+except ImportError:
+    from typing_extensions import TypeAlias
 
 import numpy as np
 import numpy.typing as npt
@@ -20,8 +26,7 @@ T = TypeVar("T", contravariant=True)
 
 
 class Formatter(Protocol, Generic[T]):
-    def format(self, value: T, /, meta: FormatMetadata) -> Any:
-        ...
+    def format(self, value: T, /, meta: FormatMetadata) -> Any: ...
 
 
 @dataclass

@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeAlias
+
+# Handle TypeAlias compatibility between Python versions
+try:
+    from typing import TypeAlias
+except ImportError:
+    from typing_extensions import TypeAlias
 
 
 CallStack: TypeAlias = list[str]
