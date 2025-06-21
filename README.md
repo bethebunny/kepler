@@ -4,7 +4,6 @@ Wish you could see stuff like this about your program?
 
 <img width="1227" alt="image" src="https://github.com/user-attachments/assets/aa60de68-2648-4794-a29c-873365bc077b">
 
-
 Kepler meticulously tracks your program, and creates simply and easily readable reports to help you understand what they're doing.
 
 Kepler _is not_ a replacement for a good profiling tool, nor is it necessarily a great production implementation tool. Kepler is designed to be that go-to tool in your toolbelt for quick and dirty measurements of your programs.
@@ -46,3 +45,21 @@ def main():
 main
 kepler.report()
 ```
+
+## Roadmap
+
+### :soon: Up next
+
+- Export reports as JSON or pandas dataframes
+
+### :rainbow: Before 1.0
+
+- Track and report other metrics besidings timings
+- Export flamegraphs
+- Track system metrics
+- Integrate with open-telemetry
+- Docs
+- Examples
+- Thorough unit testing
+- Track across multi-threading
+- Logo
