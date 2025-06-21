@@ -29,7 +29,8 @@ class Unit(enum.Enum):
         return self.order < other.order
 
     def _format(self, units: float, precision: int = 3):
-        return f"{units/self.order:.{precision}g} {self.shortname}"
+        # Format with this unit order with the given precision
+        return f"{units / self.order:.{precision}g} {self.shortname}"
 
     @classmethod
     def best_unit(cls, units: float):
@@ -44,6 +45,7 @@ class Unit(enum.Enum):
 
     @classmethod
     def format(cls, units: float, precision: int = 3):
+        # Pick the best unit to format the given number of units, and format it.
         # It makes sense to format a fractional number of bytes because eg.
         # this might be used to represent a statistic or derived quantity, like
         # the mean of a distribution of bytes, or bytes/second.
@@ -83,15 +85,35 @@ class MetricPrefix(Unit):
 
 
 class Bytes(Unit):
-    BYTE = ("B", 1)
-    K = ("KiB", 2**10)  # I respectfully refuse to type "****byte"
-    M = ("MiB", 2**20)
-    G = ("GiB", 2**30)
-    T = ("TiB", 2**40)
-    P = ("PiB", 2**50)
-    E = ("EiB", 2**60)
-    Z = ("ZiB", 2**70)
-    Y = ("YiB", 2**80)
+    B = ("B", 1)
+    KiB = ("KiB", 2**10)
+    MiB = ("MiB", 2**20)
+    GiB = ("GiB", 2**30)
+    TiB = ("TiB", 2**40)
+    PiB = ("PiB", 2**50)
+    EiB = ("EiB", 2**60)
+    ZiB = ("ZiB", 2**70)
+    YiB = ("YiB", 2**80)
+
+    @classmethod
+    def best_unit(cls, units: float):
+        """Choose best unit for bytes using 1024 threshold instead of 1000."""
+        return max(
+            (unit for unit in cls if 1 <= (units // unit.order) < 1024),
+            default=cls.default(),
+        )
+
+    def _format(self, units: float, precision: int = 3):
+        """Format bytes with better behavior for human-readable values."""
+        value = units / self.order
+        if 999 <= abs(value) <= 1024 and precision == 3:
+            # Special case to show closer exact values for 1000-1023 bytes
+            precision = 4
+
+        # Use standard g format which respects precision correctly
+        formatted = f"{value:.{precision}g}"
+
+        return f"{formatted} {self.shortname}"
 
 
 class Time(Unit):
