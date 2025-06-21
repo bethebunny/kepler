@@ -10,6 +10,12 @@ from types import FrameType
 import typing
 from typing import Callable, Generator, Iterable, Mapping, Optional
 
+# Handle ParamSpec compatibility between Python versions
+try:
+    from typing import ParamSpec
+except ImportError:
+    from typing_extensions import ParamSpec
+
 
 GeneratorContextManager = contextlib._GeneratorContextManager  # type: ignore
 
@@ -105,7 +111,7 @@ def current_context() -> TimerContext:
     return _CURRENT_CONTEXT.get()
 
 
-P = typing.ParamSpec("P")
+P = ParamSpec("P")
 R = typing.TypeVar("R")
 T = typing.TypeVar("T")
 
