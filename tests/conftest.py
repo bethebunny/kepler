@@ -26,4 +26,4 @@ def test_data():
 
 def assert_log_json_roundtrip(log: Log):
     """Assert that log structure is preserved when serialized to JSON and back"""
-    assert Log.from_events(log.events) == log
+    assert Log.from_json(log.json()) == log
