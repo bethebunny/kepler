@@ -42,23 +42,23 @@ def main():
         time.sleep(0.3)
     do_some_stuff()
 
-main
+main()
 kepler.report()
 ```
 
 ## Roadmap
 
-### :check: Changelog
+### ✅ Changelog
 
 - Import and export reports as json
 - Report directly from json -- try `python -m kepler.report < tests/data/simple_log.json`
 - Testing for units, json import and export
 
-### :soon: Up next
+### 🔜 Up next
 
 - Track system metrics
 
-### :rainbow: Before 1.0
+### 🌈 Before 1.0
 
 - Export traces to pandas
 - Flamegraphs
