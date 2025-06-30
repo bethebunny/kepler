@@ -7,6 +7,25 @@ on:
     branches: [ main ]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    
+    - name: Install Ruff
+      run: pip install ruff
+    
+    - name: Run Ruff linter
+      run: ruff check .
+    
+    - name: Run Ruff formatter check
+      run: ruff format --check .
+
   test:
     runs-on: ${{ matrix.os }}
     strategy:

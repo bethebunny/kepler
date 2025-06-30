@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Generic, Iterable, Protocol, TypeVar
+from typing import Any, Callable, Generic, Protocol, TypeVar
 
 import numpy as np
 from rich import console, table
 
-from ..event import CallStack, CallerID, Event, Log, ScopedEvents
+from ..event import CallStack, Log, ScopedEvents
 from .format import (
     Formatter,
     FormatMetadata,
@@ -15,7 +15,7 @@ from .format import (
     Sparkline,
     TimedeltaFormatter,
 )
-from ..timer import Timer, TimerContext
+from ..timer import TimerContext
 
 
 T = TypeVar("T")

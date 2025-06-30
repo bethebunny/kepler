@@ -46,9 +46,6 @@ class Timer:
                 yield value
                 current_iter = self.log(current_iter)
 
-    def stopwatch(self, name: str):
-        return self.context.stopwatch(name)
-
     def export(self) -> Iterable[ScopedEvents]:
         yield ScopedEvents(call_stack=(), events=self.events)
         yield from self.context.export()
@@ -57,8 +54,8 @@ class Timer:
 class TimerContext:
     def __init__(self):
         self.timers: Mapping[CallerID, Timer] = collections.defaultdict(Timer)
-        self.stopwatches: Mapping[CallerID, TimerContext] = (
-            collections.defaultdict(TimerContext)
+        self.stopwatches: Mapping[CallerID, TimerContext] = collections.defaultdict(
+            TimerContext
         )
         self._tokens: list[contextvars.Token[TimerContext]] = []
 

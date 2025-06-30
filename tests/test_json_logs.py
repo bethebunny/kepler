@@ -166,9 +166,7 @@ def test_function_nested_within_conditional_context(
 
     with context:
         for enabled in [True, False]:
-            with optional_context(
-                kepler.time("conditional") if enabled else None
-            ):
+            with optional_context(kepler.time("conditional") if enabled else None):
                 inner()
 
     log = captured_log(context)
@@ -212,9 +210,7 @@ def test_conditional_context_nested_within_function(
 
     @kepler.time("outer")
     def outer(enabled: bool):
-        with optional_context(
-            kepler.time("conditional_inner") if enabled else None
-        ):
+        with optional_context(kepler.time("conditional_inner") if enabled else None):
             pass
 
     with context:
@@ -420,9 +416,7 @@ def test_nested_conditional_contexts_with_same_label(
     """Test nested conditional contexts with same label"""
 
     def nested_conditional_context(outer_enabled: bool, inner_enabled: bool):
-        with optional_context(
-            kepler.time("conditional") if outer_enabled else None
-        ):
+        with optional_context(kepler.time("conditional") if outer_enabled else None):
             with optional_context(
                 kepler.time("conditional") if inner_enabled else None
             ):

@@ -43,3 +43,8 @@ Documentation = "https://bethebunny.github.io/kepler"
 Repository = "https://github.com/bethebunny/kepler"
 Issues = "https://github.com/bethebunny/kepler/issues"
 Changelog = "https://github.com/bethebunny/kepler/releases"
+
+[tool.ruff.lint]
+# E731: allow inline lambdas
+# E741: allow short variable names
+ignore = ["E731", "E741"]

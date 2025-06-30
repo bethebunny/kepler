@@ -1,5 +1,3 @@
-import pytest
-
 import kepler
 from kepler import timer
 from kepler.event import Log

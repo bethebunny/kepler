@@ -1,6 +1,5 @@
 import pytest
-import math
-from kepler.reporting.units import Unit, MetricPrefix, Bytes, Time
+from kepler.reporting.units import MetricPrefix, Bytes, Time
 
 
 class TestUnit:
@@ -161,16 +160,12 @@ class TestBytes:
         assert Bytes.format(1000) == "1000 B"  # Was "1e+03 B"
         assert Bytes.format(1023) == "1023 B"  # Was "1.02e+03 B"
         assert Bytes.format(1000.5) == "1000 B"  # Fractional values work too
-        assert (
-            Bytes.format(9999) == "9.76 KiB"
-        )  # Still switches units appropriately
+        assert Bytes.format(9999) == "9.76 KiB"  # Still switches units appropriately
 
         # But still uses scientific notation for very large/small values
         huge_value = 1024**10
         result = Bytes.format(huge_value)
-        assert (
-            "e+" in result
-        )  # Should still use scientific notation for huge values
+        assert "e+" in result  # Should still use scientific notation for huge values
 
         # And for very small values
         assert Bytes.format(0.00001) == "1e-05 B"
@@ -269,9 +264,7 @@ class TestUnitIntegration:
         # Test value that exceeds the range - should default to base unit
         super_huge_value = 1024**10
         unit = Bytes.best_unit(super_huge_value)
-        assert (
-            unit == Bytes.B
-        )  # Should default to base unit for values exceeding range
+        assert unit == Bytes.B  # Should default to base unit for values exceeding range
 
     def test_precision_edge_cases(self):
         """Test formatting with edge case precision values."""
@@ -328,9 +321,7 @@ class TestExactBehaviors:
 
         # Very large time values - when they exceed year range, fall back to SI units!
         huge_time = 1000 * 365 * 24 * 60 * 60  # 1000 years = 31.5 Gs
-        assert (
-            Time.format(huge_time) == "31.5 Gs"
-        )  # Uses SI prefix, not compound!
+        assert Time.format(huge_time) == "31.5 Gs"  # Uses SI prefix, not compound!
 
         # Moderate large time - fits in year range, uses compound format
         gigantic_time = 1e10  # ~317 years
@@ -357,20 +348,14 @@ class TestExactBehaviors:
         """Test exact behavior at unit selection boundaries."""
         # Right at the 1-1000 boundary for bytes - now with improved formatting!
         assert Bytes.format(999) == "999 B"
-        assert (
-            Bytes.format(1000) == "1000 B"
-        )  # Much better! No scientific notation
-        assert (
-            Bytes.format(1023) == "1023 B"
-        )  # Much better! No scientific notation
+        assert Bytes.format(1000) == "1000 B"  # Much better! No scientific notation
+        assert Bytes.format(1023) == "1023 B"  # Much better! No scientific notation
         assert Bytes.format(1024) == "1 KiB"  # Exactly 1 KiB
         assert Bytes.format(1025) == "1 KiB"  # Rounds to 1 KiB with precision=3
 
         # Upper boundary for KiB - now correctly uses 1024 threshold
         assert Bytes.format(1024 * 999) == "999 KiB"
-        assert (
-            Bytes.format(1024 * 1000) == "1000 KiB"
-        )  # Now correctly shows KiB!
+        assert Bytes.format(1024 * 1000) == "1000 KiB"  # Now correctly shows KiB!
         assert Bytes.format(1024 * 1023) == "1023 KiB"  # Just under threshold
         assert Bytes.format(1024 * 1024) == "1 MiB"  # Exactly 1 MiB
 
@@ -385,18 +370,10 @@ class TestExactBehaviors:
         """Test how precision affects exact output."""
         # Different precisions for the same value - now with correct precision
         value = 1234567
-        assert (
-            Bytes.format(value, precision=1) == "1 MiB"
-        )  # 1 significant digit
-        assert (
-            Bytes.format(value, precision=2) == "1.2 MiB"
-        )  # 2 significant digits
-        assert (
-            Bytes.format(value, precision=3) == "1.18 MiB"
-        )  # 3 significant digits
-        assert (
-            Bytes.format(value, precision=4) == "1.177 MiB"
-        )  # 4 significant digits
+        assert Bytes.format(value, precision=1) == "1 MiB"  # 1 significant digit
+        assert Bytes.format(value, precision=2) == "1.2 MiB"  # 2 significant digits
+        assert Bytes.format(value, precision=3) == "1.18 MiB"  # 3 significant digits
+        assert Bytes.format(value, precision=4) == "1.177 MiB"  # 4 significant digits
 
         # With fractional value - same unit selection
         value = 1234567.89
@@ -413,9 +390,7 @@ class TestExactBehaviors:
             Bytes.B._format(1000, precision=3) == "1000 B"
         )  # Now shows readable format!
         assert Bytes.B._format(999, precision=3) == "999 B"
-        assert (
-            Bytes.B._format(999.9, precision=3) == "999.9 B"
-        )  # Also readable now!
+        assert Bytes.B._format(999.9, precision=3) == "999.9 B"  # Also readable now!
 
         # Small values that still don't need scientific notation
         assert Bytes.B._format(0.01, precision=3) == "0.01 B"
@@ -430,14 +405,8 @@ class TestExactBehaviors:
         # The key improvement: bytes should use 1024 threshold for unit selection
         assert Bytes.format(1024 * 1000) == "1000 KiB"  # Fixed!
         assert Bytes.format(1024 * 1023) == "1023 KiB"  # Still KiB
-        assert (
-            Bytes.format(1024 * 1024) == "1 MiB"
-        )  # Switches to MiB at 1024 KiB
+        assert Bytes.format(1024 * 1024) == "1 MiB"  # Switches to MiB at 1024 KiB
 
         # Test the boundary behavior with exact precision
-        assert (
-            Bytes.format(1024 * 1024 - 1) == "1024 KiB"
-        )  # Just under 1 MiB (exact)
-        assert (
-            Bytes.format(1024 * 1024 + 1) == "1 MiB"
-        )  # Just over 1 MiB (rounds)
+        assert Bytes.format(1024 * 1024 - 1) == "1024 KiB"  # Just under 1 MiB (exact)
+        assert Bytes.format(1024 * 1024 + 1) == "1 MiB"  # Just over 1 MiB (rounds)
