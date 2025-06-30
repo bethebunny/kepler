@@ -28,6 +28,20 @@ def log_structure(log: Log) -> LogStructure:
     )
 
 
+def test_decorator(context: TimerContext):
+    @kepler.time
+    def f():
+        pass
+
+    with context:
+        f()
+    log = Log.from_events(context.export())
+    # Uses fully qualified function name
+    assert log_structure(log) == LogStructure(
+        event_counts=[(("test_decorator.<locals>.f",), 1)]
+    )
+
+
 def test_split(context: TimerContext):
     with context:
         split = kepler.stopwatch("watch")

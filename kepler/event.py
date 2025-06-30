@@ -26,6 +26,11 @@ class CallerID:
         return cls(label, inspect.getfile(frame), frame.f_lineno)
 
     @classmethod
+    def from_fn(cls, fn: Callable[P, R]):
+        code = fn.__code__
+        return cls(fn.__qualname__, code.co_filename, code.co_firstlineno)
+
+    @classmethod
     def from_caller(cls, label: str, depth: int = 1):
         frame = inspect.currentframe()
         for _ in range(depth + 1):
