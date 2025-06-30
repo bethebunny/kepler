@@ -48,18 +48,23 @@ kepler.report()
 
 ## Roadmap
 
+### :check: Changelog
+
+- Import and export reports as json
+- Report directly from json -- try `python -m kepler.report < tests/data/simple_log.json`
+- Testing for units, json import and export
+
 ### :soon: Up next
 
-- Export reports as JSON or pandas dataframes
+- Track system metrics
 
 ### :rainbow: Before 1.0
 
-- Track and report other metrics besidings timings
-- Export flamegraphs
-- Track system metrics
+- Export traces to pandas
+- Flamegraphs
 - Integrate with open-telemetry
+- Track and report other metrics besidings timings
+- Thorough unit testing
 - Docs
 - Examples
-- Thorough unit testing
-- Track across multi-threading
 - Logo
