@@ -1,16 +1,53 @@
-import time
+from dataclasses import dataclass
 
-from kepler import Timer
+import kepler
 from kepler.event import Log
-from kepler.timer import current_context
+from kepler.timer import TimerContext
 
 
-def test_split(timer: Timer):
-    split = timer.stopwatch("watch")
-    split("1")
-    time.sleep(0.001)
-    split("2")
-    time.sleep(0.001)
-    log = Log.from_events(current_context().export())
+# test_json_logs.py has much more thorough tests.
+# - It probably makes sense to restructure the test files.
+# - One option is to take the examples from test_json_logs as fixtures
+#   to run as test cases for various behaviors.
+
+
+CallStackLabels = tuple[str, ...]
+
+
+@dataclass
+class LogStructure:
+    event_counts: list[tuple[CallStackLabels, int]]
+
+
+def log_structure(log: Log) -> LogStructure:
+    return LogStructure(
+        event_counts=[
+            (tuple(e.label for e in event.call_stack), len(event.events))
+            for event in log.events
+        ]
+    )
+
+
+def test_split(context: TimerContext):
+    with context:
+        split = kepler.stopwatch("watch")
+        split("1")
+        split("2")
+    log = Log.from_events(context.export())
     assert len(log.events) == 2
-    assert all("watch" in event.call_stack[0].label for event in log.events)
+
+
+def test_iter(context: TimerContext):
+    with context:
+        for _ in kepler.time("loop", range(10)):
+            pass
+    log = Log.from_events(context.export())
+    assert log_structure(log) == LogStructure(event_counts=[(("loop",), 10)])
+
+
+def test_empty_iter(context: TimerContext):
+    with context:
+        for _ in kepler.time("loop", []):
+            pass
+    log = Log.from_events(context.export())
+    assert log_structure(log) == LogStructure(event_counts=[(("loop",), 0)])
