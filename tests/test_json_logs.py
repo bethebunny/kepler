@@ -1,5 +1,6 @@
 from contextlib import ExitStack
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 import json
 from pathlib import Path
 import pytest
@@ -552,3 +553,18 @@ def test_stopwatch_splits_with_conditional_context(context: timer.TimerContext):
             ((":stopwatch: watch", "outside_context"), 2),
         ]
     )
+
+
+def test_log_timestamps_use_system_time(context: timer.TimerContext):
+    """Test log timestamps use system time"""
+
+    with context:
+        with kepler.time("test"):
+            pass
+
+    log = captured_log(context)
+    now = datetime.now()
+    for scoped_events in log.events:
+        for event in scoped_events.events:
+            ts = datetime.fromtimestamp(event.timestamp / 1e9)
+            assert ts - now < timedelta(seconds=1)
