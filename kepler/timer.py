@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import collections
 import contextlib
 import contextvars
-from time import perf_counter_ns as current_time
+from time import perf_counter_ns as current_time, time_ns
 import typing
 from typing import Callable, Generator, Iterable, Mapping, Optional
 
@@ -16,6 +17,24 @@ from .event import CallerID, Log, ScopedEvents, TimingEvent
 
 
 GeneratorContextManager = contextlib._GeneratorContextManager  # type: ignore
+
+# Always use `current_time` to get a timestamp.
+# - This is the single source of truth for timestamps
+# - This time is not guaranteed to map to the system time!
+
+
+@dataclass
+class ExportContext:
+    perf_counter_ns_offset: int
+
+    def __init__(self):
+        self.perf_counter_ns_offset = time_ns() - current_time()
+
+    def convert(self, event: TimingEvent) -> TimingEvent:
+        return TimingEvent(
+            timestamp=event.timestamp + self.perf_counter_ns_offset,
+            duration=event.duration,
+        )
 
 
 class Timer:
@@ -46,9 +65,10 @@ class Timer:
                 yield value
                 current_iter = self.log(current_iter)
 
-    def export(self) -> Iterable[ScopedEvents]:
-        yield ScopedEvents(call_stack=(), events=self.events)
-        yield from self.context.export()
+    def export(self, ctx: ExportContext | None = None) -> Iterable[ScopedEvents]:
+        ctx = ctx or ExportContext()
+        yield ScopedEvents(call_stack=(), events=[ctx.convert(e) for e in self.events])
+        yield from self.context.export(ctx)
 
 
 class TimerContext:
@@ -79,9 +99,10 @@ class TimerContext:
 
         return split
 
-    def export(self) -> Iterable[ScopedEvents]:
+    def export(self, ctx: ExportContext | None = None) -> Iterable[ScopedEvents]:
+        ctx = ctx or ExportContext()
         for caller_id, timer in self.timers.items():
-            for events in timer.export():
+            for events in timer.export(ctx):
                 yield events.nest_under(caller_id)
         for caller_id, sw_ctx in self.stopwatches.items():
             sw_caller_id = CallerID(
@@ -89,7 +110,7 @@ class TimerContext:
                 caller_id.filename,
                 caller_id.lineno,
             )
-            for events in sw_ctx.export():
+            for events in sw_ctx.export(ctx):
                 yield events.nest_under(sw_caller_id)
 
 
