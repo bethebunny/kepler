@@ -1,21 +1,18 @@
-from contextlib import ExitStack
-from dataclasses import dataclass
-from datetime import datetime, timedelta
 import json
-from pathlib import Path
-import pytest
 import sys
+from contextlib import ExitStack
+from datetime import datetime, timedelta
+from pathlib import Path
+
+import pytest
 
 import kepler
 from kepler import stopwatch
-from kepler import timer
-from kepler.event import Log
-from .conftest import assert_log_json_roundtrip
+from kepler.context import Context
+from kepler.log import Log
+from kepler.timer import TimingEvent
 
-
-def captured_log(context: timer.TimerContext) -> Log:
-    """Capture current timing log."""
-    return Log.from_events(context.export())
+from .conftest import LogStructure, assert_log_json_roundtrip, log_structure
 
 
 def optional_context(ctx):
@@ -23,23 +20,6 @@ def optional_context(ctx):
     if ctx is not None:
         context_manager.enter_context(ctx)
     return context_manager
-
-
-CallStackLabels = tuple[str, ...]
-
-
-@dataclass
-class LogStructure:
-    event_counts: list[tuple[CallStackLabels, int]]
-
-
-def log_structure(log: Log) -> LogStructure:
-    return LogStructure(
-        event_counts=[
-            (tuple(e.label for e in event.call_stack), len(event.events))
-            for event in log.events
-        ]
-    )
 
 
 @pytest.mark.skipif(
@@ -53,7 +33,7 @@ def test_simple_log(test_data: Path):
     assert_log_json_roundtrip(log)
 
 
-def test_nested_contexts(context: timer.TimerContext):
+def test_nested_contexts(context: Context):
     """Test contexts nested within other contexts"""
 
     with context:
@@ -61,7 +41,7 @@ def test_nested_contexts(context: timer.TimerContext):
             with kepler.time("inner"):
                 pass
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -72,7 +52,7 @@ def test_nested_contexts(context: timer.TimerContext):
     )
 
 
-def test_nested_functions(context: timer.TimerContext):
+def test_nested_functions(context: Context):
     """Test function decorators nested within each other"""
 
     @kepler.time("outer")
@@ -86,7 +66,7 @@ def test_nested_functions(context: timer.TimerContext):
     with context:
         outer()
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -97,14 +77,14 @@ def test_nested_functions(context: timer.TimerContext):
     )
 
 
-def test_simple_context(context: timer.TimerContext):
+def test_simple_context(context: Context):
     """Test simple single context"""
 
     with context:
         with kepler.time("simple"):
             pass
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -114,7 +94,18 @@ def test_simple_context(context: timer.TimerContext):
     )
 
 
-def test_two_separate_contexts(context: timer.TimerContext):
+def test_iter(context: Context):
+    with context:
+        for _ in kepler.time("range", range(20)):
+            pass
+
+    log = Log.from_context(context)
+    assert_log_json_roundtrip(log)
+
+    assert log_structure(log) == LogStructure(event_counts=[(("range",), 20)])
+
+
+def test_two_separate_contexts(context: Context):
     """Test two separate contexts"""
 
     with context:
@@ -123,7 +114,7 @@ def test_two_separate_contexts(context: timer.TimerContext):
         with kepler.time("second"):
             pass
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -134,7 +125,7 @@ def test_two_separate_contexts(context: timer.TimerContext):
     )
 
 
-def test_function_nested_within_context(context: timer.TimerContext):
+def test_function_nested_within_context(context: Context):
     """Test function decorator used inside a context"""
 
     @kepler.time("inner")
@@ -145,7 +136,7 @@ def test_function_nested_within_context(context: timer.TimerContext):
         with kepler.time("context"):
             inner()
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -157,7 +148,7 @@ def test_function_nested_within_context(context: timer.TimerContext):
 
 
 def test_function_nested_within_conditional_context(
-    context: timer.TimerContext,
+    context: Context,
 ):
     """Test function decorator used inside a conditional context"""
 
@@ -170,7 +161,7 @@ def test_function_nested_within_conditional_context(
             with optional_context(kepler.time("conditional") if enabled else None):
                 inner()
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -182,7 +173,7 @@ def test_function_nested_within_conditional_context(
     )
 
 
-def test_context_nested_within_function(context: timer.TimerContext):
+def test_context_nested_within_function(context: Context):
     """Test context manager used inside a function decorator"""
 
     @kepler.time("outer")
@@ -193,7 +184,7 @@ def test_context_nested_within_function(context: timer.TimerContext):
     with context:
         outer()
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -205,7 +196,7 @@ def test_context_nested_within_function(context: timer.TimerContext):
 
 
 def test_conditional_context_nested_within_function(
-    context: timer.TimerContext,
+    context: Context,
 ):
     """Test conditional context nested within function"""
 
@@ -218,7 +209,7 @@ def test_conditional_context_nested_within_function(
         outer(True)  # Creates conditional context
         outer(False)  # No conditional context
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -229,7 +220,7 @@ def test_conditional_context_nested_within_function(
     )
 
 
-def test_two_functions_with_same_label(context: timer.TimerContext):
+def test_two_functions_with_same_label(context: Context):
     """Test two different functions that resolve to the same label"""
 
     @kepler.time("function")
@@ -244,7 +235,7 @@ def test_two_functions_with_same_label(context: timer.TimerContext):
         f1()
         f2()
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -255,7 +246,7 @@ def test_two_functions_with_same_label(context: timer.TimerContext):
     )
 
 
-def test_two_contexts_with_same_label(context: timer.TimerContext):
+def test_two_contexts_with_same_label(context: Context):
     """Test two contexts with the same label"""
 
     with context:
@@ -264,7 +255,7 @@ def test_two_contexts_with_same_label(context: timer.TimerContext):
         with kepler.time("same_label"):
             pass
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -275,7 +266,7 @@ def test_two_contexts_with_same_label(context: timer.TimerContext):
     )
 
 
-def test_function_and_context_with_same_label(context: timer.TimerContext):
+def test_function_and_context_with_same_label(context: Context):
     """Test function and context with the same label"""
 
     @kepler.time("shared_label")
@@ -287,7 +278,7 @@ def test_function_and_context_with_same_label(context: timer.TimerContext):
         with kepler.time("shared_label"):
             pass
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -298,7 +289,7 @@ def test_function_and_context_with_same_label(context: timer.TimerContext):
     )
 
 
-def test_recursive_function(context: timer.TimerContext):
+def test_recursive_function(context: Context):
     """Test recursive function with timing"""
 
     @kepler.time("recursive")
@@ -310,7 +301,7 @@ def test_recursive_function(context: timer.TimerContext):
     with context:
         recursive(3)
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -323,7 +314,7 @@ def test_recursive_function(context: timer.TimerContext):
     )
 
 
-def test_mutually_recursive_functions(context: timer.TimerContext):
+def test_mutually_recursive_functions(context: Context):
     """Test mutually recursive functions"""
 
     @kepler.time("f")
@@ -339,7 +330,7 @@ def test_mutually_recursive_functions(context: timer.TimerContext):
     with context:
         f(2)
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -354,7 +345,7 @@ def test_mutually_recursive_functions(context: timer.TimerContext):
     )
 
 
-def test_recursive_function_with_context(context: timer.TimerContext):
+def test_recursive_function_with_context(context: Context):
     """Test recursive function that uses contexts internally"""
 
     @kepler.time("recursive")
@@ -367,7 +358,7 @@ def test_recursive_function_with_context(context: timer.TimerContext):
     with context:
         recursive(2)
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -392,7 +383,7 @@ def test_recursive_function_with_context(context: timer.TimerContext):
     )
 
 
-def test_nested_contexts_with_same_label(context: timer.TimerContext):
+def test_nested_contexts_with_same_label(context: Context):
     """Test nested contexts with the same label"""
 
     with context:
@@ -400,7 +391,7 @@ def test_nested_contexts_with_same_label(context: timer.TimerContext):
             with kepler.time("nested"):
                 pass
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -412,7 +403,7 @@ def test_nested_contexts_with_same_label(context: timer.TimerContext):
 
 
 def test_nested_conditional_contexts_with_same_label(
-    context: timer.TimerContext,
+    context: Context,
 ):
     """Test nested conditional contexts with same label"""
 
@@ -429,7 +420,7 @@ def test_nested_conditional_contexts_with_same_label(
         nested_conditional_context(outer_enabled=False, inner_enabled=True)
         nested_conditional_context(outer_enabled=False, inner_enabled=False)
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
@@ -441,7 +432,7 @@ def test_nested_conditional_contexts_with_same_label(
     )
 
 
-def test_stopwatch_splits(context: timer.TimerContext):
+def test_stopwatch_splits(context: Context):
     """Test basic stopwatch functionality"""
 
     with context:
@@ -450,11 +441,12 @@ def test_stopwatch_splits(context: timer.TimerContext):
         split("middle")
         split("end")
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
         event_counts=[
+            ((":stopwatch: watch",), 0),
             ((":stopwatch: watch", "start"), 1),
             ((":stopwatch: watch", "middle"), 1),
             ((":stopwatch: watch", "end"), 1),
@@ -462,7 +454,7 @@ def test_stopwatch_splits(context: timer.TimerContext):
     )
 
 
-def test_stopwatch_splits_with_same_label(context: timer.TimerContext):
+def test_stopwatch_splits_with_same_label(context: Context):
     """Test stopwatch splits with same label"""
 
     with context:
@@ -471,11 +463,12 @@ def test_stopwatch_splits_with_same_label(context: timer.TimerContext):
         split("same")
         split("same")
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
         event_counts=[
+            ((":stopwatch: watch",), 0),
             ((":stopwatch: watch", "same"), 1),
             ((":stopwatch: watch", "same"), 1),
             ((":stopwatch: watch", "same"), 1),
@@ -484,7 +477,7 @@ def test_stopwatch_splits_with_same_label(context: timer.TimerContext):
 
 
 def test_stopwatch_splits_with_same_label_as_context(
-    context: timer.TimerContext,
+    context: Context,
 ):
     """Test stopwatch split label same as context label"""
 
@@ -494,19 +487,20 @@ def test_stopwatch_splits_with_same_label_as_context(
         split = stopwatch("watch")
         split("shared")
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
         event_counts=[
             (("shared",), 1),
+            ((":stopwatch: watch",), 0),
             ((":stopwatch: watch", "shared"), 1),
         ]
     )
 
 
 def test_stopwatch_splits_with_same_label_as_function(
-    context: timer.TimerContext,
+    context: Context,
 ):
     """Test stopwatch split label same as function label"""
 
@@ -519,18 +513,19 @@ def test_stopwatch_splits_with_same_label_as_function(
         split = stopwatch("watch")
         split("shared")
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
         event_counts=[
             (("shared",), 1),
+            ((":stopwatch: watch",), 0),
             ((":stopwatch: watch", "shared"), 1),
         ]
     )
 
 
-def test_stopwatch_splits_with_conditional_context(context: timer.TimerContext):
+def test_stopwatch_splits_with_conditional_context(context: Context):
     """Test stopwatch with conditional context"""
 
     def stopwatch_with_condition(enabled: bool):
@@ -543,28 +538,30 @@ def test_stopwatch_splits_with_conditional_context(context: timer.TimerContext):
         stopwatch_with_condition(enabled=True)
         stopwatch_with_condition(enabled=False)
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     assert_log_json_roundtrip(log)
 
     assert log_structure(log) == LogStructure(
         event_counts=[
-            (("conditional",), 1),
+            ((":stopwatch: watch",), 0),
             ((":stopwatch: watch", "inside_context"), 2),
             ((":stopwatch: watch", "outside_context"), 2),
+            (("conditional",), 1),
         ]
     )
 
 
-def test_log_timestamps_use_system_time(context: timer.TimerContext):
+def test_log_timestamps_use_system_time(context: Context):
     """Test log timestamps use system time"""
 
     with context:
         with kepler.time("test"):
             pass
 
-    log = captured_log(context)
+    log = Log.from_context(context)
     now = datetime.now()
     for scoped_events in log.events:
-        for event in scoped_events.events:
+        for event in scoped_events.events[TimingEvent]:
+            assert isinstance(event, TimingEvent)
             ts = datetime.fromtimestamp(event.timestamp / 1e9)
             assert ts - now < timedelta(seconds=1)

@@ -1,21 +1,17 @@
+from dataclasses import dataclass
 from pathlib import Path
+
 import pytest
 
-from kepler import Timer
-from kepler.timer import TimerContext
-from kepler.event import Log
-
-
-@pytest.fixture
-def timer():
-    """Timer fixture that provides a timer context"""
-    with (timer := Timer()).context:
-        yield timer
+from kepler.context import Context
+from kepler.event import Event
+from kepler.log import Log
+from kepler.timer import TimingEvent
 
 
 @pytest.fixture
 def context():
-    with TimerContext() as context:
+    with Context() as context:
         yield context
 
 
@@ -27,3 +23,23 @@ def test_data():
 def assert_log_json_roundtrip(log: Log):
     """Assert that log structure is preserved when serialized to JSON and back"""
     assert Log.from_json(log.json()) == log
+
+
+CallStackLabels = tuple[str, ...]
+
+
+@dataclass
+class LogStructure:
+    event_counts: list[tuple[CallStackLabels, int]]
+
+
+def log_structure(log: Log, event_type: type[Event] = TimingEvent) -> LogStructure:
+    return LogStructure(
+        event_counts=[
+            (
+                tuple(e.label for e in scoped_events.call_stack),
+                len(scoped_events.events.get(event_type, ())),
+            )
+            for scoped_events in log.events
+        ]
+    )

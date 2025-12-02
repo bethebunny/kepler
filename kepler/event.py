@@ -1,18 +1,26 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import dataclasses
 import inspect
-from types import FrameType
-from typing import Callable, Iterable, Protocol, TypeVar
-
-try:
-    from typing import ParamSpec
-except ImportError:  # python 3.9
-    from typing_extensions import ParamSpec
+from dataclasses import dataclass
+from time import time_ns
+from types import FrameType, FunctionType
+from typing import Callable, Mapping, ParamSpec, Protocol, TypeVar
 
 P = ParamSpec("P")
 R = TypeVar("R")
+
+
+@dataclass
+class ExportContext:
+    perf_counter_ns_offset: int
+
+    def __init__(self):
+        # Measurements should be able to register their export requirements.
+        # For now this is a layering violation so import a cyclic dependency.
+        from . import timer  # cyclic dependency
+
+        self.perf_counter_ns_offset = time_ns() - timer.current_time()
 
 
 @dataclass(frozen=True)
@@ -26,7 +34,7 @@ class CallerID:
         return cls(label, inspect.getfile(frame), frame.f_lineno)
 
     @classmethod
-    def from_fn(cls, fn: Callable[P, R]):
+    def from_fn(cls, fn: FunctionType):
         code = fn.__code__
         return cls(fn.__qualname__, code.co_filename, code.co_firstlineno)
 
@@ -47,25 +55,9 @@ CallStack = tuple[CallerID, ...]
 
 
 @dataclass
-class Log:
-    events: list[ScopedEvents]
-
-    @classmethod
-    def from_events(cls, events: Iterable[ScopedEvents]):
-        return cls(events=list(events))
-
-    def json(self):
-        return [e.json() for e in self.events]
-
-    @classmethod
-    def from_json(cls, data: list[dict]):
-        return cls(events=[ScopedEvents.from_json(e) for e in data])
-
-
-@dataclass
 class ScopedEvents:
     call_stack: tuple[CallerID, ...]
-    events: list[TimingEvent]
+    events: Mapping[type[Event], list[Event]]
 
     def nest_under(self, caller_id: CallerID) -> ScopedEvents:
         return ScopedEvents(
@@ -78,30 +70,35 @@ class ScopedEvents:
     def json(self):
         return {
             "call_stack": [e.json() for e in self.call_stack],
-            "events": [e.json() for e in self.events],
+            "events": {
+                EventType.__name__: [e.json() for e in events]
+                for EventType, events in self.events.items()
+            },
         }
 
     @classmethod
     def from_json(cls, data: dict):
         return cls(
             call_stack=tuple(CallerID(**e) for e in data["call_stack"]),
-            events=[TimingEvent(**e) for e in data["events"]],
+            events={
+                (EventType := Event.TYPES[typename]): [EventType(**e) for e in events]
+                for typename, events in data["events"].items()
+            },
         )
 
 
 class Event(Protocol):
+    TYPES: dict[str, type[Event]] = {}
+
     @property
     def value(self) -> float: ...
 
+    def json(self) -> object:
+        dict[str, object]
 
-@dataclass
-class TimingEvent:
-    timestamp: int  # in nanoseconds
-    duration: int  # in nanoseconds
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+        cls.TYPES[cls.__qualname__] = cls
 
-    @property
-    def value(self) -> float:
-        return self.duration
-
-    def json(self):
-        return dataclasses.asdict(self)
+    def export(self, ctx: ExportContext):
+        return self

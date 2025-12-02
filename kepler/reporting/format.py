@@ -1,22 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import functools
 import itertools
-from typing import Any, Generic, Iterable, Protocol, TypeVar
-
-try:
-    from typing import TypeAlias
-except ImportError:  # python 3.9
-    from typing_extensions import TypeAlias
+from dataclasses import dataclass, field
+from typing import Any, Generic, Iterable, Protocol, TypeAlias, TypeVar
 
 import numpy as np
 import numpy.typing as npt
 from rich import pretty, text
 
-from .color import HLSColorGradient
+from ..event import Event
+from ..log import Log
 from .brail import brail_bars
-from ..event import Event, Log
+from .color import HLSColorGradient
 from .units import Time
 
 flatten = itertools.chain.from_iterable
@@ -34,8 +30,9 @@ class FormatMetadata:
 
     @property
     def all_events(self) -> Iterable[Event]:
-        for event in self.log.events:
-            yield from event.events
+        for scoped_events in self.log.events:
+            for events in scoped_events.events.values():
+                yield from events
 
     @functools.cached_property
     def data_range(self) -> tuple[float, float]:

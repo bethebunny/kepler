@@ -5,11 +5,10 @@ build-backend = "hatchling.build"
 [project]
 name = "kepler"
 version = "0.2.3"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
-    "numpy", 
+    "numpy",
     "rich",
-    "typing_extensions>=4.0.0; python_version<'3.10'"
 ]
 authors = [{ name = "Stef Lindall", email = "bethebunny@gmail.com" }]
 description = "Fast, easy, pretty and readable program instrumentation."

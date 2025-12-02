@@ -1,12 +1,11 @@
 import kepler
-from kepler import timer
-from kepler.event import Log
+from kepler.context import Context
+from kepler.log import Log
 
 
 def test_empty_report():
-    ctx = timer.TimerContext()
-    assert not ctx.timers
-    assert not ctx.stopwatches
+    ctx = Context()
+    assert not ctx.scopes
 
     # Test empty log creation and reporting
     empty_log = Log.from_events(ctx.export())

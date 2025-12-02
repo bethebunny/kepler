@@ -7,22 +7,22 @@ from typing import Any, Callable, Generic, Protocol, TypeVar
 import numpy as np
 from rich import console, table
 
-from ..event import CallStack, Log, ScopedEvents
+from ..context import Context
+from ..event import CallStack, ScopedEvents
+from ..log import Log
 from .format import (
-    Formatter,
     FormatMetadata,
+    Formatter,
     Pretty,
     Sparkline,
     TimedeltaFormatter,
 )
-from ..timer import TimerContext
-
 
 T = TypeVar("T")
 
 
 class Reporter(Protocol):
-    def report(self, ctx: TimerContext): ...
+    def report(self, ctx: Context): ...
 
 
 @dataclass
@@ -32,8 +32,11 @@ class Metric(Generic[T]):
     formatter: Formatter[T] = Pretty()
     rich_args: dict[str, Any] = field(default_factory=dict)
 
-    def format(self, event: ScopedEvents, meta: FormatMetadata):
-        value = self.compute([e.value for e in event.events])
+    def format(self, scope: ScopedEvents, meta: FormatMetadata):
+        events = [e.value for events in scope.events.values() for e in events]
+        if not events:
+            return ""
+        value = self.compute(events)
         return self.formatter.format(value, meta)
 
 
@@ -90,23 +93,22 @@ class RichReporter:
             events = log.events
 
         # Columns are metrics, plus "Stage" at the beginning for labels
-        report.add_column(
-            "Stage", footer="Total" if summary else None, style="bold blue"
-        )
+        report.add_column("Stage", footer="Total" if summary else "", style="bold blue")
 
         for metric in self.metrics:
             kwargs = {"justify": "right", **metric.rich_args}
-            footer = metric.format(summary, meta) if summary else None
-            report.add_column(metric.name, footer=footer, **kwargs)
+            footer = metric.format(summary, meta) if summary else ""
+            report.add_column(metric.name, footer=footer, **kwargs)  # type: ignore
 
-        # Rows are events
-        for prev_event, event in zip([None, *events], events):
-            if prev_event:  # Add context rows if necessary
-                prefix = common_prefix(prev_event.call_stack, event.call_stack)
-                for i in range(len(prefix) + 1, len(event.call_stack)):
-                    report.add_row(indent_label(event.call_stack[:i]))
+        # XXX: transpose the outer dimension from scope to event type
+        # Rows are ScopedEvents
+        for prev_scope, scope in zip([None, *events], events):
+            if prev_scope:  # Add context rows if necessary
+                prefix = common_prefix(prev_scope.call_stack, scope.call_stack)
+                for i in range(len(prefix) + 1, len(scope.call_stack)):
+                    report.add_row(indent_label(scope.call_stack[:i]))
 
-            cells = [metric.format(event, meta) for metric in self.metrics]
-            report.add_row(indent_label(event.call_stack), *cells)
+            cells = [metric.format(scope, meta) for metric in self.metrics]
+            report.add_row(indent_label(scope.call_stack), *cells)
 
         console.Console().print(report)

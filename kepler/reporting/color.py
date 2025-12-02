@@ -2,16 +2,11 @@ from __future__ import annotations
 
 import colorsys
 from dataclasses import dataclass
-
-# Handle TypeAlias compatibility between Python versions
-try:
-    from typing import TypeAlias
-except ImportError:
-    from typing_extensions import TypeAlias
+from typing import TypeAlias
 
 import numpy as np
 
-Range: TypeAlias = tuple[float, float]
+Range: TypeAlias = tuple[float, float] | np.ndarray
 
 
 @dataclass
