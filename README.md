@@ -82,6 +82,7 @@ kepler.report()
 
 ### ✅ Changelog
 
+- [Custom timing measurements](https://github.com/bethebunny/kepler?tab=readme-ov-file#adding-custom-timers)
 - Import and export reports as json
 - Report directly from json -- try `python -m kepler.report < tests/data/simple_log.json`
 - Testing for units, json import and export
