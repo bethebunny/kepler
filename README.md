@@ -46,6 +46,38 @@ main()
 kepler.report()
 ```
 
+### Adding custom timers
+
+Custom timers may be implemented with the `measurement` decorator.
+This works similarly to Python's `contextlib.contextmanager` decorator:
+
+- The decorated function should be a generator
+- It should do any setup it needs to do, and then `yield` _exactly once_
+- `yield` call corresponds exactly to the code to be measured
+- It should _return an `Event`_ to be added to kepler's log
+
+```python
+import time
+import kepler
+import torch
+
+@kepler.measurement
+def time_gpu():
+    start_time = time.perf_counter_ns()
+    start, end = torch.cuda.Event(True), torch.cade.Event(True)
+    start.record()
+    yield
+    end.record()
+    torch.cuda.synchronize()
+    return kepler.TimingEvent(start_time, start.elapsed_time(end) * 1e6)
+
+
+with time_gpu("matmul"):
+    _ = torch.rand([2, 2]) @ torch.rand([2, 2])
+
+kepler.report()
+```
+
 ## Roadmap
 
 ### ✅ Changelog

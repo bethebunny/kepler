@@ -4,7 +4,7 @@ from .event import CallerID
 from .log import Log
 from .measurement import measurement
 from .report import report
-from .timer import stopwatch, time
+from .timer import TimingEvent, stopwatch, time
 
 
 @contextlib.contextmanager
@@ -16,4 +16,12 @@ def time_and_report(label: str):
         report(label)
 
 
-__all__ = ["Log", "measurement", "report", "stopwatch", "time", "time_and_report"]
+__all__ = [
+    "Log",
+    "TimingEvent",
+    "measurement",
+    "report",
+    "stopwatch",
+    "time",
+    "time_and_report",
+]
