@@ -1,6 +1,6 @@
 import contextlib
 
-from .event import CallerID
+from .event import CallerID, Event
 from .log import Log
 from .measurement import measurement
 from .report import report
@@ -17,6 +17,7 @@ def time_and_report(label: str):
 
 
 __all__ = [
+    "Event",
     "Log",
     "TimingEvent",
     "measurement",
