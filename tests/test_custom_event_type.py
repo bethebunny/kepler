@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import kepler
 from kepler.context import Context
 from kepler.event import Event
 from kepler.log import Log

@@ -5,7 +5,7 @@ import inspect
 from dataclasses import dataclass
 from time import time_ns
 from types import FrameType, FunctionType
-from typing import Callable, Mapping, ParamSpec, Protocol, TypeVar
+from typing import Mapping, ParamSpec, Protocol, TypeVar
 
 P = ParamSpec("P")
 R = TypeVar("R")
