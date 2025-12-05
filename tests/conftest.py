@@ -1,18 +1,16 @@
-from dataclasses import dataclass
+import collections
 from pathlib import Path
 
 import pytest
 
-from kepler.context import Context
 from kepler.event import Event
-from kepler.log import Log
-from kepler.timer import TimingEvent
+from kepler.scope import Scope
 
 
 @pytest.fixture
-def context():
-    with Context() as context:
-        yield context
+def scope():
+    with Scope() as scope:
+        yield scope
 
 
 @pytest.fixture
@@ -20,26 +18,21 @@ def test_data():
     yield Path(__file__).parent / "data"
 
 
-def assert_log_json_roundtrip(log: Log):
+def assert_log_json_roundtrip(scope: Scope):
     """Assert that log structure is preserved when serialized to JSON and back"""
-    assert Log.from_json(log.json()) == log
+    assert Scope.from_json(scope.json()) == scope
 
 
 CallStackLabels = tuple[str, ...]
 
 
-@dataclass
-class LogStructure:
-    event_counts: list[tuple[CallStackLabels, int]]
-
-
-def log_structure(log: Log, event_type: type[Event] = TimingEvent) -> LogStructure:
-    return LogStructure(
-        event_counts=[
-            (
-                tuple(e.label for e in scoped_events.call_stack),
-                len(scoped_events.events.get(event_type, ())),
-            )
-            for scoped_events in log.events
-        ]
-    )
+def event_counts(scope: Scope) -> dict[type[Event], list[tuple[tuple[str, ...], int]]]:
+    typed_events = collections.defaultdict(list)
+    for event_type, events in scope.events.items():
+        if events:  # ignoring empty events for testing
+            typed_events[event_type].append(((), len(events)))
+    for caller_id, subscope in scope.scopes.items():
+        for event_type, counts in event_counts(subscope).items():
+            for call_stack, count in counts:
+                typed_events[event_type].append(((caller_id.label, *call_stack), count))
+    return typed_events

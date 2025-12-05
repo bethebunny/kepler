@@ -1,12 +1,11 @@
 import kepler
-from kepler.context import Context
-from kepler.log import Log
+from kepler.scope import Scope
 
 
 def test_empty_report():
-    ctx = Context()
-    assert not ctx.scopes
+    scope = Scope()
+    assert not scope.scopes
+    assert not scope.events
 
     # Test empty log creation and reporting
-    empty_log = Log.from_events(ctx.export())
-    kepler.report("Empty Test", empty_log)
+    kepler.report("Empty Test", scope)

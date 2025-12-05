@@ -1,43 +1,21 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable, Generic, Protocol, TypeVar
+from typing import Protocol
 
 import numpy as np
 from rich import console, table
 
-from ..context import Context
-from ..event import CallStack, ScopedEvents
-from ..log import Log
-from .format import (
-    FormatMetadata,
-    Formatter,
-    Pretty,
-    Sparkline,
-    TimedeltaFormatter,
-)
-
-T = TypeVar("T")
+from ..event import CallStack
+from ..scope import Scope
+from ..timer import TimingEvent
+from .format import FormatMetadata, Sparkline, TimedeltaFormatter
+from .metric import Metric
 
 
 class Reporter(Protocol):
-    def report(self, ctx: Context): ...
-
-
-@dataclass
-class Metric(Generic[T]):
-    name: str
-    compute: Callable[[list[float]], T]
-    formatter: Formatter[T] = Pretty()
-    rich_args: dict[str, Any] = field(default_factory=dict)
-
-    def format(self, scope: ScopedEvents, meta: FormatMetadata):
-        events = [e.value for events in scope.events.values() for e in events]
-        if not events:
-            return ""
-        value = self.compute(events)
-        return self.formatter.format(value, meta)
+    def report(self, scope: Scope): ...
 
 
 DEFAULT_METRICS = (
@@ -69,7 +47,7 @@ class RichReporter:
     name: str
     metrics: tuple[Metric, ...] = DEFAULT_METRICS
 
-    def report(self, log: Log):
+    def report(self, scope: Scope):
         # Report a table with metrics as column names, events as rows
         name = self.name
         title = f"Timings for [b][blue]{name} :stopwatch:[/blue][/b]"
@@ -78,19 +56,15 @@ class RichReporter:
         )
 
         # TODO: range upper bound should probably include sums
-        meta = FormatMetadata(log)
+        meta = FormatMetadata(list(scope.export()))
 
-        summary = None
-        top_level_events = [
-            events for events in log.events if len(events.call_stack) == 1
-        ]
-        if len(top_level_events) == 1:
-            assert top_level_events[0] is log.events[0]
-            summary, *events = log.events
-            events = [e.pop_from_front() for e in events]
-            report.show_footer = True
-        else:
-            events = log.events
+        # XXX: remove this :P
+        while not scope.events[TimingEvent] and len(scope.scopes) == 1:
+            scope = next(iter(scope.scopes.values()))
+
+        # These are TimingEvents, but the type system doesn't know this yet
+        summary = [e.duration for e in scope.events[TimingEvent]]  # type: ignore
+        report.show_footer = bool(summary)
 
         # Columns are metrics, plus "Stage" at the beginning for labels
         report.add_column("Stage", footer="Total" if summary else "", style="bold blue")
@@ -100,15 +74,15 @@ class RichReporter:
             footer = metric.format(summary, meta) if summary else ""
             report.add_column(metric.name, footer=footer, **kwargs)  # type: ignore
 
-        # XXX: transpose the outer dimension from scope to event type
-        # Rows are ScopedEvents
-        for prev_scope, scope in zip([None, *events], events):
-            if prev_scope:  # Add context rows if necessary
-                prefix = common_prefix(prev_scope.call_stack, scope.call_stack)
-                for i in range(len(prefix) + 1, len(scope.call_stack)):
-                    report.add_row(indent_label(scope.call_stack[:i]))
+        def report_scope(label: str, scope: Scope, indent: int = 0):
+            # These are TimingEvents, but the type system doesn't know this yet
+            values = [e.duration for e in scope.events[TimingEvent]]  # type: ignore
+            cells = [metric.format(values, meta) for metric in self.metrics]
+            report.add_row("  " * indent + label, *cells)
+            for caller_id, subscope in scope.scopes.items():
+                report_scope(caller_id.label, subscope, indent + 1)
 
-            cells = [metric.format(scope, meta) for metric in self.metrics]
-            report.add_row(indent_label(scope.call_stack), *cells)
+        for caller_id, subscope in scope.scopes.items():
+            report_scope(caller_id.label, subscope)
 
         console.Console().print(report)

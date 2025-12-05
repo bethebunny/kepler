@@ -1,9 +1,9 @@
 import contextlib
 
 from .event import CallerID, Event
-from .log import Log
 from .measurement import measurement
 from .report import report
+from .scope import log
 from .timer import TimingEvent, stopwatch, time
 
 
@@ -17,9 +17,10 @@ def time_and_report(label: str):
 
 
 __all__ = [
+    "CallerID",
     "Event",
-    "Log",
     "TimingEvent",
+    "log",
     "measurement",
     "report",
     "stopwatch",

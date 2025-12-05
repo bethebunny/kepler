@@ -10,7 +10,7 @@ import numpy.typing as npt
 from rich import pretty, text
 
 from ..event import Event
-from ..log import Log
+from ..scope import Log
 from .brail import brail_bars
 from .color import HLSColorGradient
 from .units import Time
@@ -30,8 +30,8 @@ class FormatMetadata:
 
     @property
     def all_events(self) -> Iterable[Event]:
-        for scoped_events in self.log.events:
-            for events in scoped_events.events.values():
+        for call_stack, typed_events in self.log:
+            for events in typed_events.values():
                 yield from events
 
     @functools.cached_property

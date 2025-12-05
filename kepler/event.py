@@ -3,24 +3,11 @@ from __future__ import annotations
 import dataclasses
 import inspect
 from dataclasses import dataclass
-from time import time_ns
 from types import FrameType, FunctionType
-from typing import Mapping, ParamSpec, Protocol, TypeVar
+from typing import MutableMapping, ParamSpec, Protocol, TypeAlias, TypeVar
 
 P = ParamSpec("P")
 R = TypeVar("R")
-
-
-@dataclass
-class ExportContext:
-    perf_counter_ns_offset: int
-
-    def __init__(self):
-        # Measurements should be able to register their export requirements.
-        # For now this is a layering violation so import a cyclic dependency.
-        from . import timer  # cyclic dependency
-
-        self.perf_counter_ns_offset = time_ns() - timer.current_time()
 
 
 @dataclass(frozen=True)
@@ -54,39 +41,6 @@ class CallerID:
 CallStack = tuple[CallerID, ...]
 
 
-@dataclass
-class ScopedEvents:
-    call_stack: tuple[CallerID, ...]
-    events: Mapping[type[Event], list[Event]]
-
-    def nest_under(self, caller_id: CallerID) -> ScopedEvents:
-        return ScopedEvents(
-            call_stack=(caller_id, *self.call_stack), events=self.events
-        )
-
-    def pop_from_front(self) -> ScopedEvents:
-        return ScopedEvents(call_stack=self.call_stack[1:], events=self.events)
-
-    def json(self):
-        return {
-            "call_stack": [e.json() for e in self.call_stack],
-            "events": {
-                EventType.__name__: [e.json() for e in events]
-                for EventType, events in self.events.items()
-            },
-        }
-
-    @classmethod
-    def from_json(cls, data: dict):
-        return cls(
-            call_stack=tuple(CallerID(**e) for e in data["call_stack"]),
-            events={
-                (EventType := Event.TYPES[typename]): [EventType(**e) for e in events]
-                for typename, events in data["events"].items()
-            },
-        )
-
-
 class Event(Protocol):
     TYPES: dict[str, type[Event]] = {}
 
@@ -100,5 +54,5 @@ class Event(Protocol):
         super().__init_subclass__()
         cls.TYPES[cls.__qualname__] = cls
 
-    def export(self, ctx: ExportContext):
-        return self
+
+TypedEvents: TypeAlias = MutableMapping[type[Event], list[Event]]

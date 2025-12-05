@@ -3,9 +3,9 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 from dataclasses import dataclass
-from time import perf_counter_ns as current_time
+from time import perf_counter_ns, time_ns
 
-from .event import Event, ExportContext
+from .event import Event
 from .measurement import measurement
 
 GeneratorContextManager = contextlib._GeneratorContextManager  # type: ignore
@@ -27,11 +27,12 @@ class TimingEvent(Event):
     def json(self):
         return dataclasses.asdict(self)
 
-    def export(self, ctx: ExportContext):
-        return TimingEvent(
-            timestamp=self.timestamp + ctx.perf_counter_ns_offset,
-            duration=self.duration,
-        )
+
+OFFSET = time_ns() - perf_counter_ns()
+
+
+def current_time():
+    return perf_counter_ns() - OFFSET
 
 
 @measurement

@@ -7,8 +7,8 @@ from types import FunctionType
 import typing
 from typing import Callable, Generator, Generic, Iterable, Protocol, TypeVar
 
-from .context import Context
 from .event import CallerID, Event
+from .scope import Scope
 
 
 P = typing.ParamSpec("P")
@@ -35,7 +35,7 @@ def measure_iter(
     it: Iterable[T],
 ) -> Iterable[T]:
     # Always add the scope, even if no iterations
-    _ = Context.current[caller_id]
+    _ = Scope.current[caller_id]
     it = iter(it)
     while True:
         try:
@@ -57,14 +57,14 @@ def _coro_return(coro: typing.Coroutine[None, None, EventType]) -> EventType:
 
 class Stopwatch(Generic[EventType]):
     measure_raw: MeasurementManager[P, EventType]
-    context: Context
+    scope: Scope
     coro: typing.Coroutine[None, None, EventType]
     kwargs: dict[str, object]
 
     def __init__(self, measure_raw, label: str, **kwargs):
         caller_id = CallerID.from_caller(f":stopwatch: {label}")
         self.measure_raw = measure_raw
-        self.context = Context.current[caller_id].context
+        self.scope = Scope.current[caller_id]
         self.kwargs = kwargs
         self.start()
 
@@ -74,19 +74,18 @@ class Stopwatch(Generic[EventType]):
 
     def __call__(self, label: str):
         event = _coro_return(self.coro)
-        self.context[CallerID.from_caller(label)].log(event)
+        self.scope[CallerID.from_caller(label)].log(event)
         self.start()
 
 
 def measurement(f: MeasurementManager[EventType]) -> Measurement[EventType]:
     # This is key to correctness of decorators. @contextmanagers can be used
     # as context managers _or_ as decorators, so by delaying creation like this
-    # we allow the decorator to retrieve the _dynamic_ timer context, rather than
-    # the context at decoration time.
+    # we allow the decorator to retrieve the _dynamic_ timer scope, rather than
+    # the scope at decoration time.
     @contextlib.contextmanager
     def measure(caller_id: CallerID, **kwargs):
-        scope = Context.current[caller_id]
-        with scope.context:
+        with Scope.current[caller_id] as scope:
             event = yield from f(**kwargs)
             scope.log(event)
 

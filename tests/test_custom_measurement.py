@@ -1,9 +1,8 @@
 import kepler
-from kepler.context import Context
-from kepler.log import Log
-from kepler import measurement
+from kepler.scope import Scope
+from kepler import TimingEvent, measurement
 
-from .conftest import assert_log_json_roundtrip, log_structure, LogStructure
+from .conftest import assert_log_json_roundtrip, event_counts
 
 
 @measurement
@@ -12,21 +11,20 @@ def tick():
     return kepler.timer.TimingEvent(0, 1)
 
 
-def test_simple_context(context: Context):
-    with context:
+def test_simple_scope(scope: Scope):
+    with scope:
         with tick("simple"):
             pass
-    log = Log.from_context(context)
-    assert_log_json_roundtrip(log)
+    assert_log_json_roundtrip(scope)
 
-    assert log_structure(log) == LogStructure(
-        event_counts=[
+    assert event_counts(scope) == {
+        TimingEvent: [
             (("simple",), 1),
         ]
-    )
+    }
 
 
-def test_nested_functions(context: Context):
+def test_nested_functions(scope: Scope):
     @tick("outer")
     def outer():
         inner()
@@ -35,50 +33,46 @@ def test_nested_functions(context: Context):
     def inner():
         pass
 
-    with context:
+    with scope:
         outer()
 
-    log = Log.from_context(context)
-    assert_log_json_roundtrip(log)
+    assert_log_json_roundtrip(scope)
 
-    assert log_structure(log) == LogStructure(
-        event_counts=[
+    assert event_counts(scope) == {
+        TimingEvent: [
             (("outer",), 1),
             (("outer", "inner"), 1),
         ]
-    )
+    }
 
 
-def test_stopwatch_splits(context: Context):
-    with context:
+def test_stopwatch_splits(scope: Scope):
+    with scope:
         split = tick.stopwatch("watch")
         split("start")
         split("middle")
         split("end")
 
-    log = Log.from_context(context)
-    assert_log_json_roundtrip(log)
+    assert_log_json_roundtrip(scope)
 
-    assert log_structure(log) == LogStructure(
-        event_counts=[
-            ((":stopwatch: watch",), 0),
+    assert event_counts(scope) == {
+        TimingEvent: [
             ((":stopwatch: watch", "start"), 1),
             ((":stopwatch: watch", "middle"), 1),
             ((":stopwatch: watch", "end"), 1),
         ]
-    )
+    }
 
 
-def test_iter(context: Context):
-    with context:
+def test_iter(scope: Scope):
+    with scope:
         for _ in tick("range", range(20)):
             pass
 
-    log = Log.from_context(context)
-    assert_log_json_roundtrip(log)
+    assert_log_json_roundtrip(scope)
 
-    assert log_structure(log) == LogStructure(
-        event_counts=[
+    assert event_counts(scope) == {
+        TimingEvent: [
             (("range",), 20),
         ]
-    )
+    }
