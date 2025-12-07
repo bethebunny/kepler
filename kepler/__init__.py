@@ -2,9 +2,11 @@ import contextlib
 
 from .event import CallerID, Event
 from .measurement import measurement
-from .report import report
+
+# from .report import report
 from .scope import log
 from .timer import TimingEvent, stopwatch, time
+from .report import report
 
 
 @contextlib.contextmanager

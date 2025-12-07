@@ -1,18 +1,29 @@
 import json
 import sys
+from typing import Sequence
 
-from .reporting import RichReporter
+from .event import Event
+from .reporting import Statistic, RichReporter
 from .scope import Scope
 
 
-def report(name: str = "", scope: Scope | None = None):
-    from .reporting import RichReporter
+DEFAULT_REPORTS = {}
 
-    reporter = RichReporter(name)
-    reporter.report(scope or Scope.current)
+
+def register_default_report(report: RichReporter):
+    DEFAULT_REPORTS[report.event_type] = report
+
+
+def report(name: str = "", scope: Scope | None = None):
+    scope = scope or Scope.current
+    all_event_types = set()
+    for _, typed_events in scope.export():
+        all_event_types |= typed_events.keys()
+
+    for event_type in all_event_types:
+        DEFAULT_REPORTS[event_type].report(name, scope)
 
 
 if __name__ == "__main__":
     scope = Scope.from_json(json.load(sys.stdin))
-    reporter = RichReporter("stdin")
-    reporter.report(scope)
+    report(scope)

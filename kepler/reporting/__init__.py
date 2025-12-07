@@ -1,3 +1,4 @@
-from .reporter import Reporter, RichReporter
+from .statistic import Statistic
+from .reporter import RichReporter
 
-__all__ = ["Reporter", "RichReporter"]
+__all__ = ["Statistic", "RichReporter"]

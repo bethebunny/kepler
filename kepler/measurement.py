@@ -74,7 +74,8 @@ class Stopwatch(Generic[EventType]):
 
     def __call__(self, label: str):
         event = _coro_return(self.coro)
-        self.scope[CallerID.from_caller(label)].log(event)
+        if event is not None:
+            self.scope[CallerID.from_caller(label)].log(event)
         self.start()
 
 
@@ -87,7 +88,8 @@ def measurement(f: MeasurementManager[EventType]) -> Measurement[EventType]:
     def measure(caller_id: CallerID, **kwargs):
         with Scope.current[caller_id] as scope:
             event = yield from f(**kwargs)
-            scope.log(event)
+            if event is not None:
+                scope.log(event)
 
     @functools.wraps(f)
     def wrapped(

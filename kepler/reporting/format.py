@@ -10,57 +10,56 @@ import numpy.typing as npt
 from rich import pretty, text
 
 from ..event import Event
-from ..scope import Log
 from .brail import brail_bars
 from .color import HLSColorGradient
-from .units import Time
+from .units import Bytes, Time
 
-flatten = itertools.chain.from_iterable
+
 Histogram: TypeAlias = tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]
-T = TypeVar("T", contravariant=True)
-
-
-class Formatter(Protocol, Generic[T]):
-    def format(self, value: T, /, meta: FormatMetadata) -> Any: ...
+Stat = TypeVar("Stat")
+Measurement = TypeVar("Measurement")
 
 
 @dataclass
-class FormatMetadata:
-    log: Log
-
-    @property
-    def all_events(self) -> Iterable[Event]:
-        for call_stack, typed_events in self.log:
-            for events in typed_events.values():
-                yield from events
+class Metadata(Generic[Stat]):
+    all_stats: list[Stat]
+    all_stats: list[Stat]
 
     @functools.cached_property
-    def data_range(self) -> tuple[float, float]:
+    def data_range(self) -> tuple[Stat, Stat]:
+        return min(self.all_stats), max(self.all_stats)  # type: ignore
+
+    @functools.cached_property
+    def hist_data_range(self) -> tuple[float, float]:
         return (
-            min(event.value for event in self.all_events),
-            max(event.value for event in self.all_events),
+            min(a.min() for _, a in self.all_stats),  # type: ignore
+            max(a.max() for _, a in self.all_stats),  # type: ignore
         )
 
 
-class Pretty(Formatter[Any]):
-    def format(self, value: Any, meta: FormatMetadata):
+class Formatter(Protocol, Generic[Stat]):
+    def format(self, value: Stat, /, meta: Metadata[Stat]) -> Any: ...
+
+
+class Pretty:
+    def format(self, value: Any, meta: Metadata[Any]):
         return pretty.Pretty(value)
 
 
 @dataclass
-class TimedeltaFormatter:
+class BytesFormatter:
     gradient: HLSColorGradient = field(default_factory=HLSColorGradient)
 
-    def format(self, nanos: int, meta: FormatMetadata) -> text.Text:
-        color = self.gradient.color(nanos, meta.data_range)
-        return text.Text(Time.format_nanos(nanos), style=color)
+    def format(self, bytes: int, meta: Metadata[int]) -> text.Text:
+        color = self.gradient.color(bytes, meta.data_range)
+        return text.Text(Bytes.format(bytes), style=color)
 
 
 @dataclass
 class Sparkline:
     gradient: HLSColorGradient = field(default_factory=HLSColorGradient)
 
-    def format(self, hist: Histogram, meta: FormatMetadata) -> text.Text:
+    def format(self, hist: Histogram, meta: Metadata[float]) -> text.Text:
         runes = self.brail_sparkline(hist)
 
         _, bins = hist
@@ -68,7 +67,7 @@ class Sparkline:
         bin_means = np.stack((bins[1:], bins[:-1]), axis=1).mean(axis=1)
         line = text.Text()
         for rune, (ymin, ymax) in zip(runes, bin_means.reshape(-1, 2)):
-            color = self.gradient.color(np.mean((ymin, ymax)), meta.data_range)
+            color = self.gradient.color(np.mean((ymin, ymax)), meta.hist_data_range)
             line.append(rune, style=color)
         return line
 

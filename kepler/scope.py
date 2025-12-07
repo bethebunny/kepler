@@ -90,8 +90,12 @@ class Scope:
         return scope
 
 
-def log(label: str, event: Event) -> None:
-    Scope.current[CallerID.from_caller(label)].log(event)
+def log(event: Event) -> None:
+    Scope.current.log(event)
+
+
+def scope(label: str):
+    return Scope.current[CallerID.from_caller(label)]
 
 
 _CURRENT_SCOPE = contextvars.ContextVar[Scope]("_CURRENT_SCOPE")

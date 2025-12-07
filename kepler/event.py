@@ -4,7 +4,7 @@ import dataclasses
 import inspect
 from dataclasses import dataclass
 from types import FrameType, FunctionType
-from typing import MutableMapping, ParamSpec, Protocol, TypeAlias, TypeVar
+from typing import ClassVar, MutableMapping, ParamSpec, Protocol, TypeAlias, TypeVar
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -41,18 +41,21 @@ class CallerID:
 CallStack = tuple[CallerID, ...]
 
 
-class Event(Protocol):
-    TYPES: dict[str, type[Event]] = {}
+@dataclass
+class Event:
+    TYPES: ClassVar[dict[str, type[Event]]] = {}
 
     @property
-    def value(self) -> float: ...
+    def value(self) -> float:
+        raise NotImplementedError
 
     def json(self) -> object:
-        dict[str, object]
+        return dataclasses.asdict(self)
 
     def __init_subclass__(cls):
         super().__init_subclass__()
         cls.TYPES[cls.__qualname__] = cls
 
 
-TypedEvents: TypeAlias = MutableMapping[type[Event], list[Event]]
+E = TypeVar("E", bound=Event)
+TypedEvents: TypeAlias = MutableMapping[type[E], list[E]]

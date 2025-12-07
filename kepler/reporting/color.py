@@ -18,16 +18,17 @@ class HLSColorGradient:
     s_range: Range = (1, 1)
 
     def color(self, value: float, range: Range):
-        hls = self.hls(self.log_feature_norm(value, range))
+        norm = self.log_feature_norm if range[0] > 0 else self.feature_norm
+        hls = self.hls(norm(value, range))
         return self.rich_color(*hls)
 
     def feature_norm(self, value: float, range: Range):
+        value = np.clip(value, *range)
         ymin, ymax = range[0] - self.smoothing, range[1] + self.smoothing
         return (value - ymin) / (ymax - ymin)
 
     def log_feature_norm(self, value: float, range: Range):
-        clipped = np.clip(value, *range)
-        return self.feature_norm(np.log(clipped), range=np.log(range))
+        return self.feature_norm(np.log(value), range=np.log(range))
 
     def hls(self, value: float) -> tuple[float, float, float]:
         assert 0 <= value <= 1

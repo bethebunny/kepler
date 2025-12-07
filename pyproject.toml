@@ -8,6 +8,7 @@ version = "0.2.4"
 requires-python = ">=3.10"
 dependencies = [
     "numpy",
+    "psutil",
     "rich",
 ]
 authors = [{ name = "Stef Lindall", email = "bethebunny@gmail.com" }]
