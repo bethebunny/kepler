@@ -4,7 +4,7 @@ import dataclasses
 import inspect
 from dataclasses import dataclass
 from types import FrameType, FunctionType
-from typing import ClassVar, MutableMapping, ParamSpec, Protocol, TypeAlias, TypeVar
+from typing import ClassVar, MutableMapping, ParamSpec, TypeAlias, TypeVar
 
 P = ParamSpec("P")
 R = TypeVar("R")

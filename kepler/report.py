@@ -1,9 +1,7 @@
 import json
 import sys
-from typing import Sequence
 
-from .event import Event
-from .reporting import Statistic, RichReporter
+from .reporting import RichReporter
 from .scope import Scope
 
 

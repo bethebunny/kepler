@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import functools
-import itertools
 from dataclasses import dataclass, field
-from typing import Any, Generic, Iterable, Protocol, TypeAlias, TypeVar
+from typing import Any, Generic, Protocol, TypeAlias, TypeVar
 
 import numpy as np
 import numpy.typing as npt
 from rich import pretty, text
 
-from ..event import Event
 from .brail import brail_bars
 from .color import HLSColorGradient
-from .units import Bytes, Time
+from .units import Bytes
 
 
 Histogram: TypeAlias = tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]

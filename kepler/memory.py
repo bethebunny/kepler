@@ -1,18 +1,14 @@
 import collections
-import dataclasses
 import gc
 import psutil
 import sys
-import weakref
 from dataclasses import dataclass
-from time import time_ns
 
-import numpy as np
 
 from .reporting import Statistic, RichReporter
 from .reporting.format import BytesFormatter
 from .report import register_default_report
-from .scope import Scope, scope
+from .scope import scope
 from . import Event, measurement, log
 
 

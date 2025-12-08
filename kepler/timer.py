@@ -12,7 +12,6 @@ from rich import text
 
 from .event import Event
 from .measurement import measurement
-from .scope import Scope
 from .reporting.color import HLSColorGradient
 from .reporting.format import Metadata, Sparkline
 from .reporting.units import Time

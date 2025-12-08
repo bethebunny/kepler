@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Any, Callable, Generic, Iterator, Sequence, TypeVar
+from typing import Any, Callable, Generic, Sequence, TypeVar
 
-import numpy as np
 
 from .format import Formatter, Measurement, Metadata, Pretty, Stat
 from ..event import Event
