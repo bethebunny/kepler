@@ -94,6 +94,14 @@ def log(event: Event) -> None:
     Scope.current.log(event)
 
 
+def import_events(scope: Scope):
+    for event_type, events in scope.events.items():
+        Scope.current.events[event_type].extend(events)
+    for caller_id, subscope in scope.scopes.items():
+        with Scope.current[caller_id]:
+            import_events(subscope)
+
+
 def scope(label: str):
     return Scope.current[CallerID.from_caller(label)]
 

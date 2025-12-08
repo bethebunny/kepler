@@ -30,7 +30,7 @@ class Measurement(Protocol, Generic[EventType]):
 
 
 def measure_iter(
-    measure: MeasurementManager[P, EventType],
+    measure: Callable[typing.Concatenate[str, P], _GeneratorContextManager[None]],
     caller_id: CallerID,
     it: Iterable[T],
 ) -> Iterable[T]:
@@ -46,7 +46,7 @@ def measure_iter(
             yield v
 
 
-def _coro_return(coro: typing.Coroutine[None, None, EventType]) -> EventType:
+def _coro_return(coro: typing.Generator[None, None, EventType]) -> EventType:
     try:
         coro.send(None)
     except StopIteration as si:
@@ -58,7 +58,7 @@ def _coro_return(coro: typing.Coroutine[None, None, EventType]) -> EventType:
 class Stopwatch(Generic[EventType]):
     measure_raw: MeasurementManager[P, EventType]
     scope: Scope
-    coro: typing.Coroutine[None, None, EventType]
+    coro: typing.Generator[None, None, EventType]
     kwargs: dict[str, object]
 
     def __init__(self, measure_raw, label: str, **kwargs):
@@ -79,7 +79,7 @@ class Stopwatch(Generic[EventType]):
         self.start()
 
 
-def measurement(f: MeasurementManager[EventType]) -> Measurement[EventType]:
+def measurement(f: MeasurementManager[P, EventType]) -> Measurement[EventType]:
     # This is key to correctness of decorators. @contextmanagers can be used
     # as context managers _or_ as decorators, so by delaying creation like this
     # we allow the decorator to retrieve the _dynamic_ timer scope, rather than

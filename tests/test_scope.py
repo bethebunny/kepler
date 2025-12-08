@@ -538,3 +538,24 @@ def test_log_timestamps_use_system_time(scope: Scope):
             assert isinstance(event, TimingEvent)
             ts = datetime.fromtimestamp(event.timestamp / 1e9)
             assert ts - now < timedelta(seconds=1)
+
+
+
+def test_import_events(scope: Scope):
+        with Scope() as inner_scope:
+            kepler.log(TimingEvent(0, 0))
+            with kepler.time("inner"):
+                pass
+
+        with scope:
+            with kepler.time("outer"):
+                kepler.scope.import_events(inner_scope)
+
+        assert_log_json_roundtrip(scope)
+
+        assert event_counts(scope) == {
+            TimingEvent: [
+                (("outer",), 2),
+                (("outer", "inner"), 1),
+            ],
+        }
