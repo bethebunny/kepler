@@ -537,7 +537,8 @@ def test_log_timestamps_use_system_time(scope: Scope):
         for event in typed_events[TimingEvent]:
             assert isinstance(event, TimingEvent)
             ts = datetime.fromtimestamp(event.timestamp / 1e9)
-            assert now - ts < timedelta(seconds=1)
+            assert now > ts
+            assert abs(now - ts) < timedelta(seconds=1)
 
 
 def test_import_events(scope: Scope):
