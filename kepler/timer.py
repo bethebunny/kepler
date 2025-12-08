@@ -42,7 +42,7 @@ OFFSET = time_ns() - perf_counter_ns()
 
 
 def current_time():
-    return perf_counter_ns() - OFFSET
+    return perf_counter_ns() + OFFSET
 
 
 @measurement
