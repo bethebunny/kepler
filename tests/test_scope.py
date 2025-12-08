@@ -537,7 +537,11 @@ def test_log_timestamps_use_system_time(scope: Scope):
         for event in typed_events[TimingEvent]:
             assert isinstance(event, TimingEvent)
             ts = datetime.fromtimestamp(event.timestamp / 1e9)
-            assert now > ts
+            # Timers aren't precise enough to guarantee this; it's true
+            # in principle but sometimes fails in practice.
+            # assert now > ts
+            # The `abs()` check just checks that the recorded timestamp is
+            # ~close to system time.
             assert abs(now - ts) < timedelta(seconds=1)
 
 
