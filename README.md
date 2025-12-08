@@ -63,8 +63,8 @@ import torch
 
 @kepler.measurement
 def time_gpu():
-    start_time = time.perf_counter_ns()
-    start, end = torch.cuda.Event(True), torch.cade.Event(True)
+    start_time = time.time_ns()
+    start, end = torch.cuda.Event(True), torch.cuda.Event(True)
     start.record()
     yield
     end.record()

@@ -22,20 +22,9 @@ class RichReporter:
             title=title, row_styles=("", "on black"), title_style="white"
         )
 
-        def all_events_of_type(event_type: type[Event]):
-            for _, typed_events in scope.export():
-                yield from typed_events[event_type]
-
-        # Rather than orchestrating this metadata, it seems like statistics
-        # really want to be computed and formatted as columns, and then
-        # transposed it
         metadata = [
             statistic.metadata(scope, self.event_type) for statistic in self.statistics
         ]
-
-        # XXX: remove this :P
-        while not scope.events[self.event_type] and len(scope.scopes) == 1:
-            scope = next(iter(scope.scopes.values()))
 
         summary = scope.events[self.event_type]
         report.show_footer = bool(summary)

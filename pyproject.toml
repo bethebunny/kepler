@@ -38,8 +38,8 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://bethebunny.github.io/kepler"
-Documentation = "https://bethebunny.github.io/kepler"
+Homepage = "https://github.com/bethebunny/kepler"
+Documentation = "https://github.com/bethebunny/kepler"
 Repository = "https://github.com/bethebunny/kepler"
 Issues = "https://github.com/bethebunny/kepler/issues"
 Changelog = "https://github.com/bethebunny/kepler/releases"
